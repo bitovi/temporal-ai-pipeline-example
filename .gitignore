@@ -1,0 +1,13 @@
+.env
+.index-storage
+docs
+docs_do_not_read
+src_mono/node_modules
+repos
+utils
+temporal
+localstack/volume
+hatchify_temporal/lib
+hatchify_temporal/node_modules
+hatchify_temporal/tmpRepos
+hatchify_temporal/tmpDocs
