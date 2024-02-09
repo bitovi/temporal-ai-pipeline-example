@@ -1,0 +1,50 @@
+
+services:
+  temporal-dev-server:
+    container_name: temporal-ai-pipeline_temporal
+    image: debian:buster
+    command: >
+      bash -c '\
+        apt update && \
+        apt install -y curl && \
+        curl -sSf https://temporal.download/cli.sh | sh && \
+        PATH="\$PATH:/root/.temporalio/bin" >> ~/.bashrc && \
+        source ~/.bashrc && \
+        temporal server start-dev --namespace distributed-systems-examples --ip 0.0.0.0
+      '
+    ports:
+      - 7233:7233
+      - 8233:8233
+  postgres:
+    container_name: temporal-ai-pipeline_db
+    image: ankane/pgvector
+    command: postgres -c 'max_connections=200'
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+       - POSTGRES_HOST_AUTH_METHOD=trust
+       - POSTGRES_PASSWORD=mypass
+       - POSTGRES_USER=dbuser
+       - POSTGRES_DB=hatchDB
+    volumes:
+      - ./db.sql:/docker-entrypoint-initdb.d/db.sql
+
+  localstack:
+    container_name: temporal-ai-pipeline_localstack
+    image: localstack/localstack:s3-latest
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+    environment:
+      - DEBUG=${DEBUG:-0}
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+  worker:
+    container_name: temporal-ai-pipeline_worker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - temporal-dev-server
+    restart: always
