@@ -1,11 +1,24 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
+import { S3Client, S3ClientConfig, GetObjectCommand, PutObjectCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
 
-const S3 = new S3Client({ region: 'us-east-1', endpoint: 'http://0.0.0.0:4566', credentials: {
-  accessKeyId: 'test',
-  secretAccessKey: 'test'
-}});
+const AWS_URL = process.env.AWS_URL
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 
-async function init(){
+const s3ClientOptions: S3ClientConfig = {
+  region: 'us-east-1',
+  endpoint: AWS_URL,
+}
+
+if (AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY) {
+  s3ClientOptions.credentials = {
+    accessKeyId: AWS_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SECRET_ACCESS_KEY
+  }
+}
+
+const S3 = new S3Client(s3ClientOptions);
+
+async function init() {
   try {
     const response = await createS3Bucket('training');
     console.log('create bucket response:', response);
