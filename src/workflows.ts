@@ -1,30 +1,50 @@
 import { proxyActivities } from '@temporalio/workflow';
-// Only import the activity types
 import type * as activities from './activities';
+import type * as s3Activities from './s3';
+
+const { createS3Bucket, deleteS3Bucket } = proxyActivities<typeof s3Activities>({
+  startToCloseTimeout: '1 minute',
+});
 
 const { gitClone } = proxyActivities<typeof activities>({
   startToCloseTimeout: '5 minute',
 });
+
 const { vectorizeDocsList } = proxyActivities<typeof activities>({
   startToCloseTimeout: '50 minute',
 });
 
 
-export async function getDocsUpdateIndex(url: string, docsPath: string): Promise<string> {
-  console.log('getDocsUpdateIndex starting');
-  const [bucket, filename, totalFiles] = await gitClone(url, docsPath);
-  console.log('-------------gitClone done');
+// TODO: update all the inputs/return values to be objects
+type Repo = {
+  url: string
+  path: string
+}
+type GetDocsUpdateIndexInput = {
+  id: string
+  repos: Repo[]
+}
+export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Promise<void> {
+  const { id } = input
 
-  const size = 5;
-  const promises = [];
-  for (let i = 0; i < totalFiles; i += size) {
-    const iFrom = i;
-    const iTo = Math.min(i + size, totalFiles);
-    const promise = vectorizeDocsList(bucket, filename, iFrom, iTo); // Store the returned value
-    promises.push(promise);
-  }
+  const bucket = id.toLowerCase()
 
-  const indexes = await Promise.all(promises);
+  await createS3Bucket({ bucket })
 
-  return `Workfow completed: ${totalFiles} files in ${indexes.length} chunks`
+  // const [bucket, filename, totalFiles] = await gitClone(url, docsPath);
+
+  // const size = 5;
+  // const promises = [];
+  // for (let i = 0; i < totalFiles; i += size) {
+  //   const iFrom = i;
+  //   const iTo = Math.min(i + size, totalFiles);
+  //   const promise = vectorizeDocsList(bucket, filename, iFrom, iTo);
+  //   promises.push(promise);
+  // }
+
+  // const indexes = await Promise.all(promises);
+
+  // return `Workfow completed: ${totalFiles} files in ${indexes.length} chunks`
+
+  await deleteS3Bucket({ bucket })
 }

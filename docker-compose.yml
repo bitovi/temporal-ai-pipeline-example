@@ -42,7 +42,7 @@ services:
       - AWS_ACCESS_KEY_ID=testUser
       - AWS_SECRET_ACCESS_KEY=testAccessKey
     volumes:
-      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
   worker:

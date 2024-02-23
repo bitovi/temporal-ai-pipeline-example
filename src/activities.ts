@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import dotenv from 'dotenv';
 import fs from 'node:fs';
 import https from 'node:https';
 import fsp from 'node:fs/promises';
@@ -9,11 +8,12 @@ import { putS3Object, getS3Object } from './s3';
 
 import { PGVectorStore, SimpleDirectoryReader, storageContextFromDefaults, VectorStoreIndex } from 'llamaindex';
 
-dotenv.config();
-const repoDirectory = './../tmpRepos';
+export * from './s3'
+
+const REPO_DIRECTORY = './../tmpRepos';
 
 export async function gitClone(url: string, docsPath: string): Promise<[string, string, number]> {
-  const dirPath = path.join(__dirname, repoDirectory);
+  const dirPath = path.join(__dirname, REPO_DIRECTORY);
 
   // create temp folder of it does not exist
   if (!fs.existsSync(dirPath)) {
@@ -45,7 +45,11 @@ export async function gitClone(url: string, docsPath: string): Promise<[string, 
 
   // Save in s3 bucket as filelist.csv and return the [s3 url, length]
 
-  const response = await putS3Object(Buffer.from(filteredFileList.join('\n')), 'training', 'docslist.csv');
+  const response = await putS3Object({
+    body: Buffer.from(filteredFileList.join('\n')),
+    bucket: 'training',
+    key: 'docslist.csv'
+  });
   console.log('putS3Object response.httpStatusCode', response['$metadata'].httpStatusCode);
 
   return ['training', 'docslist.csv', filteredFileList.length];
@@ -53,7 +57,7 @@ export async function gitClone(url: string, docsPath: string): Promise<[string, 
 
 export async function vectorizeDocsList(bucket = 'training', key = 'docslist.csv', iFrom = 0, iTo = 0): Promise<any> {
   // get document from s3
-  const response = await getS3Object(bucket, key);
+  const response = await getS3Object({ bucket, key });
 
   const docsListFull = (await response.Body.transformToString()).split('\n');
 

@@ -14,13 +14,13 @@ async function run() {
   const worker = await Worker.create({
     connection,
     namespace: 'default',
-    taskQueue: 'cloner-queue',
+    taskQueue: 'vectorize-queue',
     // Workflows are registered using a path as they run in a separate JS context.
     workflowsPath: require.resolve('./workflows'),
     activities,
   });
 
-  // Step 3: Start accepting tasks on the `cloner-queue` queue
+  // Step 3: Start accepting tasks on the `vectorize-queue` queue
   //
   // The worker runs until it encounters an unexepected error or the process receives a shutdown signal registered on
   // the SDK Runtime object.
