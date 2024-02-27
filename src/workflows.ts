@@ -6,7 +6,7 @@ const { createS3Bucket, deleteS3Bucket } = proxyActivities<typeof s3Activities>(
   startToCloseTimeout: '1 minute',
 });
 
-const { gitClone } = proxyActivities<typeof activities>({
+const { ArchiveFilesFromGitHubInS3: cloneRepoAndUploadToS3 } = proxyActivities<typeof activities>({
   startToCloseTimeout: '5 minute',
 });
 
@@ -14,24 +14,31 @@ const { vectorizeDocsList } = proxyActivities<typeof activities>({
   startToCloseTimeout: '50 minute',
 });
 
-
-// TODO: update all the inputs/return values to be objects
-type Repo = {
+type Repository = {
   url: string
+  branch: string
   path: string
+  fileExtensions: string[]
 }
 type GetDocsUpdateIndexInput = {
   id: string
-  repos: Repo[]
+  repository: Repository
 }
 export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Promise<void> {
-  const { id } = input
+  const { id, repository } = input
 
-  const bucket = id.toLowerCase()
+  await createS3Bucket({ bucket: id })
 
-  await createS3Bucket({ bucket })
+  const { url, branch, path, fileExtensions } = repository
 
-  // const [bucket, filename, totalFiles] = await gitClone(url, docsPath);
+  await cloneRepoAndUploadToS3({
+    temporaryDirectory: id,
+    s3Bucket: id,
+    gitRepoUrl: url,
+    gitRepoBranch: branch,
+    gitRepoDirectory: path,
+    fileExtensions
+  });
 
   // const size = 5;
   // const promises = [];
@@ -46,5 +53,5 @@ export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Pr
 
   // return `Workfow completed: ${totalFiles} files in ${indexes.length} chunks`
 
-  await deleteS3Bucket({ bucket })
+  // await deleteS3Bucket({ bucket })
 }

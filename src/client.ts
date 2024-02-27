@@ -9,20 +9,22 @@ async function run() {
     connection
   });
 
-  const id = `index-workflow-${nanoid()}`
+  const id = `index-workflow-${nanoid()}`.toLowerCase().replaceAll('_', '')
   const handle = await client.workflow.start(VectorizeFilesWorkflow, {
     taskQueue: 'vectorize-queue',
     args: [{
       id,
-      repos: [{
+      repository: {
         url: 'https://github.com/bitovi/hatchify.git',
-        path: 'docs'
-      }]
+        branch: 'main',
+        path: 'docs',
+        fileExtensions: ['md']
+      }
     }],
     workflowId: id
   });
 
-  console.log(`Started workflow ${handle.workflowId}`);
+  console.log(`Workflow ${handle.workflowId} running`);
 
   console.log(await handle.result());
 }
