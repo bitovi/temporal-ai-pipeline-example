@@ -1,0 +1,61 @@
+
+services:
+  temporal-dev-server:
+    container_name: temporal-ai-pipeline_temporal
+    image: debian:buster
+    command: >
+      bash -c '\
+        apt update && \
+        apt install -y curl && \
+        curl -sSf https://temporal.download/cli.sh | sh && \
+        PATH="\$PATH:/root/.temporalio/bin" >> ~/.bashrc && \
+        source ~/.bashrc && \
+        temporal server start-dev --namespace distributed-systems-examples --ip 0.0.0.0
+      '
+    ports:
+      - 7233:7233
+      - 8233:8233
+
+  postgres:
+    container_name: temporal-ai-pipeline_db
+    image: ankane/pgvector
+    command: postgres -c 'max_connections=200'
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+       - POSTGRES_HOST_AUTH_METHOD=trust
+       - POSTGRES_PASSWORD=dbpassword
+       - POSTGRES_USER=dbuser
+       - POSTGRES_DB=vector_db
+
+  localstack:
+    container_name: temporal-ai-pipeline_localstack
+    image: localstack/localstack:s3-latest
+    ports:
+      - 4566:4566
+    environment:
+      - DEBUG=${DEBUG:-0}
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=testUser
+      - AWS_SECRET_ACCESS_KEY=testAccessKey
+    volumes:
+      - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  worker:
+    container_name: temporal-ai-pipeline_worker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - temporal-dev-server
+      - localstack
+      - postgres
+    restart: always
+    environment:
+      - AWS_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=testUser
+      - AWS_SECRET_ACCESS_KEY=testAccessKey
+      - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}

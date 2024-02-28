@@ -1,0 +1,28 @@
+{
+  "name": "temporal-hello-world",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --build",
+    "start": "ts-node src/worker.ts",
+    "client": "ts-node src/client.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.504.0",
+    "@temporalio/activity": "^1.9.0",
+    "@temporalio/client": "^1.9.0",
+    "@temporalio/worker": "^1.9.0",
+    "@temporalio/workflow": "^1.9.0",
+    "archiver": "^6.0.1",
+    "extract-zip": "^2.0.1",
+    "llamaindex": "^0.1.10",
+    "nanoid": "3.x"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "^1.0.0",
+    "@types/archiver": "^6.0.2",
+    "@types/node": "^16.11.43",
+    "ts-node": "^10.8.1",
+    "typescript": "^4.4.2"
+  }
+}
