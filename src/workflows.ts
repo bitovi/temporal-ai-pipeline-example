@@ -1,16 +1,15 @@
 import { proxyActivities } from '@temporalio/workflow';
 import type * as activities from './activities';
-import type * as s3Activities from './s3';
 
-const { createS3Bucket, deleteS3Bucket } = proxyActivities<typeof s3Activities>({
+const { createS3Bucket, deleteS3Bucket } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
 });
 
-const { ArchiveFilesFromGitHubInS3: cloneRepoAndUploadToS3 } = proxyActivities<typeof activities>({
+const { collectDocuments } = proxyActivities<typeof activities>({
   startToCloseTimeout: '5 minute',
 });
 
-const { vectorizeDocsList } = proxyActivities<typeof activities>({
+const { vectorizeDocuments } = proxyActivities<typeof activities>({
   startToCloseTimeout: '50 minute',
 });
 
@@ -31,14 +30,20 @@ export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Pr
 
   const { url, branch, path, fileExtensions } = repository
 
-  await cloneRepoAndUploadToS3({
-    temporaryDirectory: id,
+  const { zipFileName } = await collectDocuments({
+    temporaryDirectory: `${id}-github-download`,
     s3Bucket: id,
     gitRepoUrl: url,
     gitRepoBranch: branch,
     gitRepoDirectory: path,
     fileExtensions
   });
+
+  await vectorizeDocuments({
+    temporaryDirectory: `${id}-s3-download`,
+    s3Bucket: id,
+    zipFileName
+  })
 
   // const size = 5;
   // const promises = [];

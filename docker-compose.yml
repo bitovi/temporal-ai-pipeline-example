@@ -25,11 +25,9 @@ services:
     restart: always
     environment:
        - POSTGRES_HOST_AUTH_METHOD=trust
-       - POSTGRES_PASSWORD=mypass
+       - POSTGRES_PASSWORD=dbpassword
        - POSTGRES_USER=dbuser
-       - POSTGRES_DB=hatchDB
-    volumes:
-      - ./db.sql:/docker-entrypoint-initdb.d/db.sql
+       - POSTGRES_DB=vector_db
 
   localstack:
     container_name: temporal-ai-pipeline_localstack
@@ -53,8 +51,11 @@ services:
     depends_on:
       - temporal-dev-server
       - localstack
+      - postgres
     restart: always
     environment:
       - AWS_URL=http://localstack:4566
       - AWS_ACCESS_KEY_ID=testUser
       - AWS_SECRET_ACCESS_KEY=testAccessKey
+      - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
