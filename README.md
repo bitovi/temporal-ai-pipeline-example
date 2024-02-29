@@ -25,7 +25,8 @@ Run the following command to turn everything off:
 docker compose down -v
 ```
 
-## NOTES 
+## Output
 
-stored indexes and embeddings in DB , refer to a certain location of collections, when the chat engine need to be used, it should have access to those locations, to be able to read and "embedd" the relevant parts in the request to the LLM
+Generated embeddings are stored in a Postgres table:
+
 ![Alt text](image.png)
