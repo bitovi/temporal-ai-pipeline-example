@@ -68,13 +68,10 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   // @ts-ignore
   const filelist = await fsp.readdir(temporaryGitHubDirectory, { recursive: true })
 
-  const filteredFileList = filelist.reduce((filteredFileList: string[], fileName: string) => {
+  const filteredFileList = filelist.filter((fileName: string) => {
     const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1)
-    if (fileName.startsWith(gitRepoDirectory) && fileExtensions.includes(fileExtension)) {
-      filteredFileList.push(fileName)
-    }
-    return filteredFileList
-  }, [])
+    return fileName.startsWith(gitRepoDirectory) && fileExtensions.includes(fileExtension)
+  })
 
   const archive = archiver('zip', {
     zlib: { level: 9 }
@@ -110,15 +107,15 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   }
 }
 
-type VectorizeDocumentsInput = {
+type ProcessDocumentsInput = {
   temporaryDirectory: string
   s3Bucket: string
   zipFileName: string
 }
-type VectorizeDocumentsOutput = {
+type ProcessDocumentsOutput = {
   collection: string
 }
-export async function processDocuments(input: VectorizeDocumentsInput): Promise<VectorizeDocumentsOutput> {
+export async function processDocuments(input: ProcessDocumentsInput): Promise<ProcessDocumentsOutput> {
   const { temporaryDirectory, s3Bucket, zipFileName } = input
 
   if (!fs.existsSync(temporaryDirectory)) {

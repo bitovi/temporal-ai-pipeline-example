@@ -1,33 +1,21 @@
 import { NativeConnection, Worker } from '@temporalio/worker';
 import * as activities from './activities';
 
+const TEMPORAL_ADDRESS = process.env.TEMPORAL_ADDRESS
+
 async function run() {
-  // Step 1: Establish a connection with Temporal server.
-  //
-  // Worker code uses `@temporalio/worker.NativeConnection`.
-  // (But in your application code it's `@temporalio/client.Connection`.)
   const connection = await NativeConnection.connect({
-    address: 'temporal-dev-server:7233',
-    // TLS and gRPC metadata configuration goes here.
+    address: TEMPORAL_ADDRESS
   });
-  // Step 2: Register Workflows and Activities with the Worker.
+
   const worker = await Worker.create({
     connection,
     namespace: 'default',
-    taskQueue: 'vectorize-queue',
-    // Workflows are registered using a path as they run in a separate JS context.
+    taskQueue: 'documents-processing-queue',
     workflowsPath: require.resolve('./workflows'),
-    activities,
+    activities
   });
 
-  // Step 3: Start accepting tasks on the `vectorize-queue` queue
-  //
-  // The worker runs until it encounters an unexepected error or the process receives a shutdown signal registered on
-  // the SDK Runtime object.
-  //
-  // By default, worker logs are written via the Runtime logger to STDERR at INFO level.
-  //
-  // See https://typescript.temporal.io/api/classes/worker.Runtime#install to customize these defaults.
   await worker.run();
 }
 

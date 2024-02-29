@@ -1,5 +1,5 @@
 import { Connection, Client } from '@temporalio/client';
-import { VectorizeFilesWorkflow } from './workflows';
+import { documentsProcessingWorkflow } from './workflows';
 import { nanoid } from 'nanoid';
 
 async function run() {
@@ -10,8 +10,8 @@ async function run() {
   });
 
   const id = `index-workflow-${nanoid()}`.toLowerCase().replaceAll('_', '')
-  const handle = await client.workflow.start(VectorizeFilesWorkflow, {
-    taskQueue: 'vectorize-queue',
+  const handle = await client.workflow.start(documentsProcessingWorkflow, {
+    taskQueue: 'documents-processing-queue',
     args: [{
       id,
       repository: {

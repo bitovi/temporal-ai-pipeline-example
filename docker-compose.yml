@@ -54,6 +54,7 @@ services:
       - postgres
     restart: always
     environment:
+      - TEMPORAL_ADDRESS=temporal-dev-server:7233
       - AWS_URL=http://localstack:4566
       - AWS_ACCESS_KEY_ID=testUser
       - AWS_SECRET_ACCESS_KEY=testAccessKey

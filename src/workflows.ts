@@ -19,14 +19,14 @@ type Repository = {
   path: string
   fileExtensions: string[]
 }
-type GetDocsUpdateIndexInput = {
+type DocumentsProcessingWorkflowInput = {
   id: string
   repository: Repository
 }
-type GetDocsUpdateIndexOutput = {
+type DocumentsProcessingWorkflowOutput = {
   collection: string
 }
-export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Promise<GetDocsUpdateIndexOutput> {
+export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
   const { id, repository } = input
 
   await createS3Bucket({ bucket: id })
