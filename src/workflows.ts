@@ -1,7 +1,7 @@
 import { proxyActivities } from '@temporalio/workflow';
 import type * as activities from './activities';
 
-const { createS3Bucket, deleteS3Bucket } = proxyActivities<typeof activities>({
+const { createS3Bucket, deleteS3Object, deleteS3Bucket } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
 });
 
@@ -9,7 +9,7 @@ const { collectDocuments } = proxyActivities<typeof activities>({
   startToCloseTimeout: '5 minute',
 });
 
-const { vectorizeDocuments } = proxyActivities<typeof activities>({
+const { processDocuments } = proxyActivities<typeof activities>({
   startToCloseTimeout: '50 minute',
 });
 
@@ -23,7 +23,10 @@ type GetDocsUpdateIndexInput = {
   id: string
   repository: Repository
 }
-export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Promise<void> {
+type GetDocsUpdateIndexOutput = {
+  collection: string
+}
+export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Promise<GetDocsUpdateIndexOutput> {
   const { id, repository } = input
 
   await createS3Bucket({ bucket: id })
@@ -31,7 +34,7 @@ export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Pr
   const { url, branch, path, fileExtensions } = repository
 
   const { zipFileName } = await collectDocuments({
-    temporaryDirectory: `${id}-github-download`,
+    temporaryDirectory: id,
     s3Bucket: id,
     gitRepoUrl: url,
     gitRepoBranch: branch,
@@ -39,24 +42,17 @@ export async function VectorizeFilesWorkflow(input: GetDocsUpdateIndexInput): Pr
     fileExtensions
   });
 
-  await vectorizeDocuments({
-    temporaryDirectory: `${id}-s3-download`,
+  const { collection } = await processDocuments({
+    temporaryDirectory: id,
     s3Bucket: id,
     zipFileName
   })
 
-  // const size = 5;
-  // const promises = [];
-  // for (let i = 0; i < totalFiles; i += size) {
-  //   const iFrom = i;
-  //   const iTo = Math.min(i + size, totalFiles);
-  //   const promise = vectorizeDocsList(bucket, filename, iFrom, iTo);
-  //   promises.push(promise);
-  // }
+  await deleteS3Object({ bucket: id, key: zipFileName })
 
-  // const indexes = await Promise.all(promises);
+  await deleteS3Bucket({ bucket: id })
 
-  // return `Workfow completed: ${totalFiles} files in ${indexes.length} chunks`
-
-  // await deleteS3Bucket({ bucket })
+  return {
+    collection
+  }
 }

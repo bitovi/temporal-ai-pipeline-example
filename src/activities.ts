@@ -12,6 +12,8 @@ import {
   GetObjectCommandOutput,
   PutObjectCommand,
   PutObjectCommandOutput,
+  DeleteObjectCommand,
+  DeleteObjectCommandOutput,
   CreateBucketCommand,
   CreateBucketCommandOutput,
   DeleteBucketCommand,
@@ -35,6 +37,7 @@ type CollectDocumentsInput = {
 }
 type CollectDocumentsOutput = {
   zipFileName: string
+  s3Bucket: string
 }
 export async function collectDocuments(input: CollectDocumentsInput): Promise<CollectDocumentsOutput> {
   const {
@@ -102,7 +105,8 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
 
   return {
-    zipFileName
+    zipFileName,
+    s3Bucket
   }
 }
 
@@ -112,9 +116,9 @@ type VectorizeDocumentsInput = {
   zipFileName: string
 }
 type VectorizeDocumentsOutput = {
-  indexId: string
+  collection: string
 }
-export async function vectorizeDocuments(input: VectorizeDocumentsInput): Promise<VectorizeDocumentsOutput> {
+export async function processDocuments(input: VectorizeDocumentsInput): Promise<VectorizeDocumentsOutput> {
   const { temporaryDirectory, s3Bucket, zipFileName } = input
 
   if (!fs.existsSync(temporaryDirectory)) {
@@ -147,12 +151,11 @@ export async function vectorizeDocuments(input: VectorizeDocumentsInput): Promis
   const index = await VectorStoreIndex.fromDocuments(docs, {
     storageContext: ctx,
   })
-  const indexId = index?.indexStruct?.indexId
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
 
   return {
-    indexId
+    collection: temporaryDirectory
   }
 }
 
@@ -222,8 +225,22 @@ export async function putS3Object(input: PutS3ObjectInput): Promise<PutObjectCom
     new PutObjectCommand({
       Body: body,
       Bucket: bucket,
-      Key: key,
-      ContentType: 'text/csv',
+      Key: key
+    })
+  )
+}
+
+type DeleteS3ObjectInput = {
+  bucket: string
+  key: string
+}
+export async function deleteS3Object(input: DeleteS3ObjectInput): Promise<DeleteObjectCommandOutput> {
+  const { bucket, key } = input
+  const s3Client = getClient()
+  return s3Client.send(
+    new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: key
     })
   )
 }
