@@ -24,7 +24,7 @@ type DocumentsProcessingWorkflowInput = {
   repository: Repository
 }
 type DocumentsProcessingWorkflowOutput = {
-  collection: string
+  tableName: string
 }
 export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
   const { id, repository } = input
@@ -34,7 +34,7 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
   const { url, branch, path, fileExtensions } = repository
 
   const { zipFileName } = await collectDocuments({
-    temporaryDirectory: id,
+    workflowId: id,
     s3Bucket: id,
     gitRepoUrl: url,
     gitRepoBranch: branch,
@@ -42,8 +42,8 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     fileExtensions
   });
 
-  const { collection } = await processDocuments({
-    temporaryDirectory: id,
+  const { tableName } = await processDocuments({
+    workflowId: id,
     s3Bucket: id,
     zipFileName
   })
@@ -53,6 +53,6 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
   await deleteS3Bucket({ bucket: id })
 
   return {
-    collection
+    tableName
   }
 }
