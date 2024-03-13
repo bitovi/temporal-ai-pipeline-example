@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import fs from 'node:fs'
-import fsp from 'node:fs/promises'
-import path from 'path'
-import child_process from 'child_process'
-import archiver from 'archiver'
-import extractZip from 'extract-zip'
+import path from 'node:path'
+import child_process from 'node:child_process'
+
 import {
   S3Client,
   S3ClientConfig,
@@ -19,16 +17,23 @@ import {
   DeleteBucketCommand,
   DeleteBucketCommandOutput
 } from '@aws-sdk/client-s3'
-import { PGVectorStore, SimpleDirectoryReader, storageContextFromDefaults, VectorStoreIndex } from 'llamaindex'
-
+import { OpenAIEmbeddings } from '@langchain/openai'
+import { PGVectorStore, PGVectorStoreArgs } from '@langchain/community/vectorstores/pgvector'
+import { PoolConfig } from 'pg'
+import archiver from 'archiver'
+import extractZip from 'extract-zip'
 
 const AWS_URL = process.env.AWS_URL
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+
 const DATABASE_CONNECTION_STRING = process.env.DATABASE_CONNECTION_STRING
+const DATABASE_TABLE_NAME = process.env.DATABASE_TABLE_NAME || 'vector_db'
 
 type CollectDocumentsInput = {
-  temporaryDirectory: string
+  workflowId: string
   s3Bucket: string
   gitRepoUrl: string
   gitRepoBranch: string
@@ -37,11 +42,10 @@ type CollectDocumentsInput = {
 }
 type CollectDocumentsOutput = {
   zipFileName: string
-  s3Bucket: string
 }
 export async function collectDocuments(input: CollectDocumentsInput): Promise<CollectDocumentsOutput> {
   const {
-    temporaryDirectory,
+    workflowId,
     s3Bucket,
     gitRepoUrl,
     gitRepoBranch,
@@ -49,6 +53,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     fileExtensions,
   } = input
 
+  const temporaryDirectory = workflowId
   if (!fs.existsSync(temporaryDirectory)) {
     fs.mkdirSync(temporaryDirectory, { recursive: true })
   }
@@ -66,9 +71,8 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   )
 
   // @ts-ignore
-  const filelist = await fsp.readdir(temporaryGitHubDirectory, { recursive: true })
-
-  const filteredFileList = filelist.filter((fileName: string) => {
+  const fileList = fs.readdirSync(temporaryGitHubDirectory, { recursive: true })
+  const filteredFileList = fileList.filter((fileName: string) => {
     const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1)
     return fileName.startsWith(gitRepoDirectory) && fileExtensions.includes(fileExtension)
   })
@@ -94,7 +98,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   await zipFileReady
 
   await putS3Object({
-    body: Buffer.from(await fsp.readFile(zipFileLocation)),
+    body: Buffer.from(fs.readFileSync(zipFileLocation)),
     bucket: s3Bucket,
     key: zipFileName
   })
@@ -102,22 +106,22 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
 
   return {
-    zipFileName,
-    s3Bucket
+    zipFileName
   }
 }
 
 type ProcessDocumentsInput = {
-  temporaryDirectory: string
+  workflowId: string
   s3Bucket: string
   zipFileName: string
 }
 type ProcessDocumentsOutput = {
-  collection: string
+    tableName: string
 }
 export async function processDocuments(input: ProcessDocumentsInput): Promise<ProcessDocumentsOutput> {
-  const { temporaryDirectory, s3Bucket, zipFileName } = input
+  const { workflowId, s3Bucket, zipFileName } = input
 
+  const temporaryDirectory = workflowId
   if (!fs.existsSync(temporaryDirectory)) {
     fs.mkdirSync(temporaryDirectory, { recursive: true })
   }
@@ -131,28 +135,49 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   await extractZip(zipFileName, { dir: path.resolve(temporaryDirectory) })
   fs.rmSync(zipFileName)
 
-  const docs = await new SimpleDirectoryReader().loadData({
-    directoryPath: temporaryDirectory,
-    // @ts-ignore
-    recursive: true
+  const embeddingsModel = new OpenAIEmbeddings({
+    openAIApiKey: OPENAI_API_KEY,
+    batchSize: 512,
+    modelName: 'text-embedding-ada-002'
   })
 
-  const pgvs = new PGVectorStore({
-    connectionString: DATABASE_CONNECTION_STRING
-  })
-  pgvs.setCollection(temporaryDirectory)
-  await pgvs.clearCollection().catch(console.error)
+  const config: PGVectorStoreArgs = {
+    postgresConnectionOptions: {
+      connectionString: DATABASE_CONNECTION_STRING
+    } as PoolConfig,
+    tableName: DATABASE_TABLE_NAME,
+    columns: {
+      idColumnName: 'id',
+      vectorColumnName: 'vector',
+      contentColumnName: 'content',
+      metadataColumnName: 'metadata',
+    }
+  }
 
-  const ctx = await storageContextFromDefaults({ vectorStore: pgvs })
+  const pgvectorStore = await PGVectorStore.initialize(
+    embeddingsModel,
+    config
+  )
 
-  const index = await VectorStoreIndex.fromDocuments(docs, {
-    storageContext: ctx,
-  })
+  // @ts-ignore
+  const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })
+  const filesOnly = fileList.filter((fileName) => fileName.indexOf('.') >= 0)
+
+  for (const fileName of filesOnly) {
+    const pageContent = fs.readFileSync(path.join(temporaryDirectory, fileName), { encoding: 'utf-8' })
+    if (pageContent.length > 0) {
+      await pgvectorStore.addDocuments([{
+        pageContent,
+        metadata: { fileName, workflowId }
+      }])
+    }
+  }
+  pgvectorStore.end()
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
 
   return {
-    collection: temporaryDirectory
+    tableName: DATABASE_TABLE_NAME
   }
 }
 
