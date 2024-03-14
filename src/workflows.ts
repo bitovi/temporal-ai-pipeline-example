@@ -1,5 +1,5 @@
-import { proxyActivities } from '@temporalio/workflow';
-import type * as activities from './activities';
+import { proxyActivities, uuid4 } from '@temporalio/workflow';
+import * as activities from './activities';
 
 const { createS3Bucket, deleteS3Object, deleteS3Bucket } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
@@ -12,6 +12,10 @@ const { collectDocuments } = proxyActivities<typeof activities>({
 const { processDocuments } = proxyActivities<typeof activities>({
   startToCloseTimeout: '50 minute',
 });
+
+const { generatePrompt, invokePrompt } = proxyActivities<typeof activities>({
+  startToCloseTimeout: '1 minute'
+})
 
 type Repository = {
   url: string
@@ -55,4 +59,37 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
   return {
     tableName
   }
+}
+
+type QueryWorkflowInput = {
+  conversationId?: string
+  query: string
+  latestDocumentProcessingId: string
+}
+type QueryWorkflowOutput = {
+  conversationId: string
+  response: string
+}
+export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> {
+  const { latestDocumentProcessingId, query } = input
+  let { conversationId } = input
+
+  if (!conversationId) {
+    conversationId = `conversation-${uuid4()}`
+    await createS3Bucket({ bucket: conversationId })
+  }
+
+  const { conversationFilename } = await generatePrompt({
+    query,
+    latestDocumentProcessingId,
+    s3Bucket: conversationId
+  })
+
+  const { response } = await invokePrompt({
+    query,
+    s3Bucket: conversationId,
+    conversationFilename
+  })
+
+  return { conversationId, response }
 }

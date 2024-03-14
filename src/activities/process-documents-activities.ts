@@ -3,29 +3,14 @@ import fs from 'node:fs'
 import path from 'node:path'
 import child_process from 'node:child_process'
 
-import {
-  S3Client,
-  S3ClientConfig,
-  GetObjectCommand,
-  GetObjectCommandOutput,
-  PutObjectCommand,
-  PutObjectCommandOutput,
-  DeleteObjectCommand,
-  DeleteObjectCommandOutput,
-  CreateBucketCommand,
-  CreateBucketCommandOutput,
-  DeleteBucketCommand,
-  DeleteBucketCommandOutput
-} from '@aws-sdk/client-s3'
+
 import { OpenAIEmbeddings } from '@langchain/openai'
 import { PGVectorStore, PGVectorStoreArgs } from '@langchain/community/vectorstores/pgvector'
 import { PoolConfig } from 'pg'
 import archiver from 'archiver'
 import extractZip from 'extract-zip'
 
-const AWS_URL = process.env.AWS_URL
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
+import { getS3Object, putS3Object } from './s3-activities'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
@@ -135,29 +120,7 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   await extractZip(zipFileName, { dir: path.resolve(temporaryDirectory) })
   fs.rmSync(zipFileName)
 
-  const embeddingsModel = new OpenAIEmbeddings({
-    openAIApiKey: OPENAI_API_KEY,
-    batchSize: 512,
-    modelName: 'text-embedding-ada-002'
-  })
-
-  const config: PGVectorStoreArgs = {
-    postgresConnectionOptions: {
-      connectionString: DATABASE_CONNECTION_STRING
-    } as PoolConfig,
-    tableName: DATABASE_TABLE_NAME,
-    columns: {
-      idColumnName: 'id',
-      vectorColumnName: 'vector',
-      contentColumnName: 'content',
-      metadataColumnName: 'metadata',
-    }
-  }
-
-  const pgvectorStore = await PGVectorStore.initialize(
-    embeddingsModel,
-    config
-  )
+  const pgVectorStore = await getPGVectorStore()
 
   // @ts-ignore
   const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })
@@ -166,13 +129,14 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   for (const fileName of filesOnly) {
     const pageContent = fs.readFileSync(path.join(temporaryDirectory, fileName), { encoding: 'utf-8' })
     if (pageContent.length > 0) {
-      await pgvectorStore.addDocuments([{
+      await pgVectorStore.addDocuments([{
         pageContent,
         metadata: { fileName, workflowId }
       }])
     }
   }
-  pgvectorStore.end()
+
+  pgVectorStore.end()
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
 
@@ -181,88 +145,33 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   }
 }
 
-let _s3Client: S3Client
-function getClient(): S3Client {
-  if(!_s3Client) {
-    const s3ClientOptions: S3ClientConfig = {
-      region: 'us-east-1',
-      endpoint: AWS_URL,
-      forcePathStyle: true
-    }
+let _pgVectorStore: PGVectorStore
+export async function getPGVectorStore(): Promise<PGVectorStore> {
+  if (!_pgVectorStore) {
+    const embeddingsModel = new OpenAIEmbeddings({
+      openAIApiKey: OPENAI_API_KEY,
+      batchSize: 512,
+      modelName: 'text-embedding-ada-002'
+    })
 
-    if (AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY) {
-      s3ClientOptions.credentials = {
-        accessKeyId: AWS_ACCESS_KEY_ID,
-        secretAccessKey: AWS_SECRET_ACCESS_KEY
+    const config: PGVectorStoreArgs = {
+      postgresConnectionOptions: {
+        connectionString: DATABASE_CONNECTION_STRING
+      } as PoolConfig,
+      tableName: DATABASE_TABLE_NAME,
+      columns: {
+        idColumnName: 'id',
+        vectorColumnName: 'vector',
+        contentColumnName: 'content',
+        metadataColumnName: 'metadata',
       }
     }
-    _s3Client = new S3Client(s3ClientOptions)
+
+    _pgVectorStore = await PGVectorStore.initialize(
+      embeddingsModel,
+      config
+    )
   }
 
-  return _s3Client
-}
-
-type CreateS3BucketInput = {
-  bucket: string
-}
-export async function createS3Bucket(input: CreateS3BucketInput): Promise<CreateBucketCommandOutput> {
-  const { bucket } = input
-  const s3Client = getClient()
-  return s3Client.send(new CreateBucketCommand({ Bucket: bucket }))
-}
-
-type DeleteS3BucketInput = {
-  bucket: string
-}
-export async function deleteS3Bucket(input: DeleteS3BucketInput): Promise<DeleteBucketCommandOutput> {
-  const { bucket } = input
-  const s3Client = getClient()
-  return s3Client.send(new DeleteBucketCommand({ Bucket: bucket }))
-}
-
-type GetS3ObjectInput = {
-  bucket: string
-  key: string
-}
-export async function getS3Object(input: GetS3ObjectInput): Promise<GetObjectCommandOutput> {
-  const { bucket, key } = input
-  const s3Client = getClient()
-  return s3Client.send(
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
-  )
-}
-
-type PutS3ObjectInput = {
-  body: Buffer
-  bucket: string
-  key: string
-}
-export async function putS3Object(input: PutS3ObjectInput): Promise<PutObjectCommandOutput> {
-  const { body, bucket, key } = input
-  const s3Client = getClient()
-  return s3Client.send(
-    new PutObjectCommand({
-      Body: body,
-      Bucket: bucket,
-      Key: key
-    })
-  )
-}
-
-type DeleteS3ObjectInput = {
-  bucket: string
-  key: string
-}
-export async function deleteS3Object(input: DeleteS3ObjectInput): Promise<DeleteObjectCommandOutput> {
-  const { bucket, key } = input
-  const s3Client = getClient()
-  return s3Client.send(
-    new DeleteObjectCommand({
-      Bucket: bucket,
-      Key: key
-    })
-  )
+  return _pgVectorStore
 }

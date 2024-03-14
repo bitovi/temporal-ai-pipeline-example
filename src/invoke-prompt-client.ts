@@ -1,5 +1,5 @@
 import { Connection, Client } from '@temporalio/client';
-import { documentsProcessingWorkflow } from './workflows';
+import { invokePromptWorkflow } from './workflows';
 import { nanoid } from 'nanoid';
 
 async function run() {
@@ -9,17 +9,15 @@ async function run() {
     connection
   });
 
-  const id = `index-workflow-${nanoid()}`.toLowerCase().replaceAll('_', '')
-  const handle = await client.workflow.start(documentsProcessingWorkflow, {
-    taskQueue: 'documents-processing-queue',
+  const [ latestDocumentProcessingId, query, conversationId ] = process.argv.slice(2)
+  
+  const id = `invoke-prompt-workflow-${nanoid()}`.toLowerCase().replaceAll('_', '')
+  const handle = await client.workflow.start(invokePromptWorkflow, {
+    taskQueue: 'invoke-prompt-queue',
     args: [{
-      id,
-      repository: {
-        url: 'https://github.com/bitovi/hatchify.git',
-        branch: 'main',
-        path: 'docs',
-        fileExtensions: ['md']
-      }
+      query,
+      latestDocumentProcessingId,
+      conversationId: conversationId
     }],
     workflowId: id
   });
