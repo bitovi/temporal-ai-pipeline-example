@@ -17,7 +17,7 @@ async function run() {
     args: [{
       query,
       latestDocumentProcessingId,
-      conversationId: conversationId
+      conversationId
     }],
     workflowId: id
   });
