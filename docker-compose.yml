@@ -43,8 +43,8 @@ services:
       - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
-  worker:
-    container_name: temporal-ai-pipeline_worker
+  process-documents-worker:
+    container_name: temporal-ai-pipeline_process-documents-worker
     build:
       context: .
       dockerfile: Dockerfile
@@ -66,5 +66,31 @@ services:
     command: >
       sh -c '\
         sleep 5 \
-        && npx nodemon --watch src --ext ts src/worker.ts \
+        && npx nodemon --watch src --ext ts src/process-documents-worker.ts \
+      '
+
+  prompt-worker:
+    container_name: temporal-ai-pipeline_invoke-prompt-worker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - temporal-dev-server
+      - localstack
+      - postgres
+    restart: always
+    environment:
+      - TEMPORAL_ADDRESS=temporal-dev-server:7233
+      - AWS_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=testUser
+      - AWS_SECRET_ACCESS_KEY=testAccessKey
+      - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
+      - DATABASE_TABLE_NAME=vector_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - .:/usr/src/app
+    command: >
+      sh -c '\
+        sleep 5 \
+        && npx nodemon --watch src --ext ts src/invoke-prompt-worker.ts \
       '
