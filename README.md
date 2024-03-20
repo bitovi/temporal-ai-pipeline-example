@@ -25,8 +25,18 @@ Run the following command to turn everything off:
 docker compose down -v
 ```
 
-## Output
+## Create embeddings
+
+```bash
+npm run process-documents
+```
 
 Generated embeddings are stored in a Postgres table:
 
 ![Alt text](image.png)
+
+## Invoke a prompt
+
+```bash
+npm run invoke-prompt <embeddings workflowID> "<query>"
+```
