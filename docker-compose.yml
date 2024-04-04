@@ -10,7 +10,7 @@ services:
         curl -sSf https://temporal.download/cli.sh | sh && \
         PATH="\$PATH:/root/.temporalio/bin" >> ~/.bashrc && \
         source ~/.bashrc && \
-        temporal server start-dev --namespace distributed-systems-examples --ip 0.0.0.0
+        temporal server start-dev --namespace default --ip 0.0.0.0
       '
     ports:
       - 7233:7233
