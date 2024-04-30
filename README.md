@@ -40,3 +40,19 @@ Generated embeddings are stored in a Postgres table:
 ```bash
 npm run invoke-prompt <embeddings workflowID> "<query>"
 ```
+
+## Test a prompt
+
+```bash
+npm run invoke-prompt <embeddings workflowID>
+```
+
+## More info
+
+This repo was created for demonstrating concepts outlined in the following articles.
+
+- [Your Next AI Startup Should Be Built on Temporal - Part 1](https://www.bitovi.com/blog/your-next-ai-startup-should-be-built-on-temporal-part-1-document-processing)
+- [Your Next AI Startup Should Be Built on Temporal - Part 2](https://www.bitovi.com/blog/your-next-ai-startup-should-be-built-on-temporal-part-2-prompt-engineering)
+- [Your Next AI Startup Should Be Built on Temporal - Part 3]()
+
+[//]: <> (TODO update href)

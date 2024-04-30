@@ -1,23 +1,10 @@
 import { getPGVectorStore } from './process-documents-activities'
 import { getS3Object, putS3Object } from './s3-activities'
 
-import { ChatPromptTemplate } from "@langchain/core/prompts"
-import { ChatOpenAI } from "@langchain/openai"
+import { createMemoizedOpenAI } from '../chat-gpt'
 import { Document } from '@langchain/core/documents'
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-
-let _gptModel: ChatOpenAI
-function getGPTModel(): ChatOpenAI {
-  if (!_gptModel) {
-    _gptModel = new ChatOpenAI({
-      openAIApiKey: OPENAI_API_KEY,
-      temperature: 0,
-      modelName: 'gpt-3.5-turbo'
-    })
-  }
-  return _gptModel
-}
+const getGPTModel = createMemoizedOpenAI();
 
 type GetRelatedDocumentsInput = {
   query: string
@@ -75,8 +62,11 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
 
   const response = await gptModel.invoke([
     [ 'system', 'You are a friendly, helpful software assistant. Your goal is to help users write CRUD-based software applications using the the Hatchify open-source project in TypeScript.' ],
-    [ 'system', 'You should respond in short paragraphs, using Markdown formatting, seperated with two newlines to keep your responses easily readable.' ],
-    [ 'system', `Here is the documentation that is relevant to the user's query:` + relevantDocumentation.join('\n\n') ],
+    [ 'system', 'You should respond in short paragraphs, using Markdown formatting, separated with two newlines to keep your responses easily readable.' ],
+    [ 'system', 'Whenever possible, use code examples derived from the documentation provided.' ],
+    [ 'system', 'Import references must be included where relevant so that the reader can easily figure out how to import the necessary dependencies.' ],
+    [ 'system', 'Do not use your existing knowledge to determine import references, only use import references as they appear in the relevant documentation for Hatchify' ],
+    [ 'system', `Here is the Hatchify documentation that is relevant to the user's query:` + relevantDocumentation.join('\n\n') ],
     ['human', query]
   ])
 
