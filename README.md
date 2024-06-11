@@ -46,24 +46,16 @@ npm run invoke-prompt <embeddings workflowID> "<query>"
 ## Test a prompt
 
 ```bash
-npm run invoke-prompt <embeddings workflowID>
-```
-
-## Test Prompts
-
-```bash
-npm run test-prompts
+npm run test-prompt <embeddings workflowID>
 ```
 
 ## More info
 
 This repo was created for demonstrating concepts outlined in the following articles.
 
-- [Your Next AI Startup Should Be Built on Temporal - Part 1](https://www.bitovi.com/blog/your-next-ai-startup-should-be-built-on-temporal-part-1-document-processing)
-- [Your Next AI Startup Should Be Built on Temporal - Part 2](https://www.bitovi.com/blog/your-next-ai-startup-should-be-built-on-temporal-part-2-prompt-engineering)
-- [Your Next AI Startup Should Be Built on Temporal - Part 3]()
-
-[//]: <> (TODO update href)
+- [Part 1 - Document Processing](https://www.bitovi.com/blog/your-next-ai-startup-should-be-built-on-temporal-part-1-document-processing)
+- [Part 2 - Prompt Engineering](https://www.bitovi.com/blog/your-next-ai-startup-should-be-built-on-temporal-part-2-prompt-engineering)
+- [Part 3 - Automated Prompt Testing](https://www.bitovi.com/blog/your-next-ai-startup-should-be-built-on-temporal-part-3-automated-prompt-testing)
 
 ## Obtain an OpenAI API key
 
