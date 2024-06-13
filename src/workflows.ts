@@ -1,20 +1,16 @@
-import { proxyActivities, uuid4 } from '@temporalio/workflow';
-import * as activities from './activities';
+import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'
+import * as activities from './activities'
 
-const { createS3Bucket, deleteS3Object, deleteS3Bucket } = proxyActivities<typeof activities>({
+const { createS3Bucket, deleteS3Object, deleteS3Bucket, generatePrompt, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
-});
+})
 
-const { collectDocuments } = proxyActivities<typeof activities>({
+const { collectDocuments, validateQueryResult, summarizeValidationResults } = proxyActivities<typeof activities>({
   startToCloseTimeout: '5 minute',
-});
+})
 
 const { processDocuments } = proxyActivities<typeof activities>({
   startToCloseTimeout: '50 minute',
-});
-
-const { generatePrompt, invokePrompt } = proxyActivities<typeof activities>({
-  startToCloseTimeout: '1 minute'
 })
 
 type Repository = {
@@ -44,7 +40,7 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     gitRepoBranch: branch,
     gitRepoDirectory: path,
     fileExtensions
-  });
+  })
 
   const { tableName } = await processDocuments({
     workflowId: id,
@@ -92,4 +88,64 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
   })
 
   return { conversationId, response }
+}
+
+type TestPromptsWorkflowInput = {
+  latestDocumentProcessingId: string
+  testName: string
+}
+type TestPromptsWorkflowOutput = {
+  validationResults: {
+    query: string
+    answer: string
+    score: number
+    reason: string
+  }[],
+  summary: string
+  averageScore: number
+}
+export async function testPromptsWorkflow(input: TestPromptsWorkflowInput): Promise<TestPromptsWorkflowOutput> {
+  const testCases = await loadTestCases({
+    testName: input.testName
+  })
+  const queries = Object.keys(testCases)
+  
+
+  const childWorkflowHandles = await Promise.all(
+    queries.map((query) => {
+      return startChild('invokePromptWorkflow', {
+        taskQueue: 'invoke-prompt-queue',
+        args: [{
+          query,
+          latestDocumentProcessingId: input.latestDocumentProcessingId,
+        }]
+      })
+    }
+  ));
+
+  const childWorkflowResponses = await Promise.all(
+    childWorkflowHandles.map(async (handle, index) => {
+      const query = queries[index];
+      const expectedResponse = testCases[query]
+      const result = await handle.result();
+
+      return {
+        query,
+        expectedResponse,
+        actualResponse: result.response,
+      }
+    })
+  );
+
+  const validationResults = await Promise.all(
+    childWorkflowResponses.map(async (input) => validateQueryResult(input))
+  )
+
+  const { summary, averageScore } = await summarizeValidationResults({ validationResults })
+
+  return {
+    validationResults,
+    summary,
+    averageScore
+  }
 }

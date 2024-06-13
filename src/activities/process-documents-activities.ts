@@ -145,33 +145,28 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   }
 }
 
-let _pgVectorStore: PGVectorStore
-export async function getPGVectorStore(): Promise<PGVectorStore> {
-  if (!_pgVectorStore) {
-    const embeddingsModel = new OpenAIEmbeddings({
-      openAIApiKey: OPENAI_API_KEY,
-      batchSize: 512,
-      modelName: 'text-embedding-ada-002'
-    })
+export function getPGVectorStore(): Promise<PGVectorStore> {
+  const embeddingsModel = new OpenAIEmbeddings({
+    openAIApiKey: OPENAI_API_KEY,
+    batchSize: 512,
+    modelName: 'text-embedding-ada-002'
+  })
 
-    const config: PGVectorStoreArgs = {
-      postgresConnectionOptions: {
-        connectionString: DATABASE_CONNECTION_STRING
-      } as PoolConfig,
-      tableName: DATABASE_TABLE_NAME,
-      columns: {
-        idColumnName: 'id',
-        vectorColumnName: 'vector',
-        contentColumnName: 'content',
-        metadataColumnName: 'metadata',
-      }
+  const config: PGVectorStoreArgs = {
+    postgresConnectionOptions: {
+      connectionString: DATABASE_CONNECTION_STRING
+    } as PoolConfig,
+    tableName: DATABASE_TABLE_NAME,
+    columns: {
+      idColumnName: 'id',
+      vectorColumnName: 'vector',
+      contentColumnName: 'content',
+      metadataColumnName: 'metadata',
     }
-
-    _pgVectorStore = await PGVectorStore.initialize(
-      embeddingsModel,
-      config
-    )
   }
 
-  return _pgVectorStore
+  return PGVectorStore.initialize(
+    embeddingsModel,
+    config
+  )
 }

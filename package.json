@@ -6,7 +6,8 @@
     "build": "tsc --build",
     "start": "ts-node src/process-documents-worker.ts && ts-node src/invoke-prompt-worker.ts",
     "process-documents": "ts-node src/process-documents-client.ts",
-    "invoke-prompt": "ts-node src/invoke-prompt-client.ts"
+    "invoke-prompt": "ts-node src/invoke-prompt-client.ts",
+    "test-prompts": "ts-node src/test-prompts-client.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.504.0",

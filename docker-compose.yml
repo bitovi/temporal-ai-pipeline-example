@@ -15,6 +15,11 @@ services:
     ports:
       - 7233:7233
       - 8233:8233
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8233/ || exit 1"]
+      interval: 10s
+      timeout: 30s
+      retries: 3
 
   postgres:
     container_name: temporal-ai-pipeline_db
@@ -49,9 +54,12 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      - temporal-dev-server
-      - localstack
-      - postgres
+      temporal-dev-server:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     restart: always
     environment:
       - TEMPORAL_ADDRESS=temporal-dev-server:7233
@@ -75,9 +83,12 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      - temporal-dev-server
-      - localstack
-      - postgres
+      temporal-dev-server:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     restart: always
     environment:
       - TEMPORAL_ADDRESS=temporal-dev-server:7233
@@ -93,4 +104,34 @@ services:
       sh -c '\
         sleep 10 \
         && npx nodemon --watch src --ext ts src/invoke-prompt-worker.ts \
+      '
+
+  test-prompts-worker:
+    container_name: temporal-ai-pipeline_test-prompts-worker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      temporal-dev-server:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+    restart: always
+    environment:
+      - TEMPORAL_ADDRESS=temporal-dev-server:7233
+      - AWS_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=testUser
+      - AWS_SECRET_ACCESS_KEY=testAccessKey
+      - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
+      - DATABASE_TABLE_NAME=vector_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./test:/usr/src/app/test
+    command: >
+      sh -c '\
+        sleep 10 \
+        && npx nodemon --watch src --ext ts src/test-prompts-worker.ts \
       '
