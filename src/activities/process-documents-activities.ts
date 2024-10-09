@@ -24,6 +24,7 @@ type CollectDocumentsInput = {
   gitRepoBranch: string
   gitRepoDirectory: string
   fileExtensions: string[]
+  tossError?: boolean
 }
 type CollectDocumentsOutput = {
   zipFileName: string
@@ -36,6 +37,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     gitRepoBranch,
     gitRepoDirectory,
     fileExtensions,
+    tossError = false
   } = input
 
   const temporaryDirectory = workflowId
@@ -82,6 +84,13 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   archive.finalize()
   await zipFileReady
 
+  if (tossError) {
+    const randomErr = Math.random()
+    if (randomErr < 0.6) {
+      throw new Error()
+    }
+  }
+
   await putS3Object({
     body: Buffer.from(fs.readFileSync(zipFileLocation)),
     bucket: s3Bucket,
@@ -99,12 +108,13 @@ type ProcessDocumentsInput = {
   workflowId: string
   s3Bucket: string
   zipFileName: string
+  tossError?: boolean
 }
 type ProcessDocumentsOutput = {
     tableName: string
 }
 export async function processDocuments(input: ProcessDocumentsInput): Promise<ProcessDocumentsOutput> {
-  const { workflowId, s3Bucket, zipFileName } = input
+  const { workflowId, s3Bucket, zipFileName, tossError = false } = input
 
   const temporaryDirectory = workflowId
   if (!fs.existsSync(temporaryDirectory)) {
@@ -120,6 +130,12 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   await extractZip(zipFileName, { dir: path.resolve(temporaryDirectory) })
   fs.rmSync(zipFileName)
 
+  if (tossError) {
+    const randomErr = Math.random()
+    if (randomErr < 0.8) {
+      throw new Error()
+    }
+  }
   const pgVectorStore = await getPGVectorStore()
 
   // @ts-ignore

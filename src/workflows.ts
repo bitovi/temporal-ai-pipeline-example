@@ -1,5 +1,6 @@
 import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'
 import * as activities from './activities'
+import { error } from 'console'
 
 const { createS3Bucket, deleteS3Object, deleteS3Bucket, generatePrompt, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
@@ -22,12 +23,13 @@ type Repository = {
 type DocumentsProcessingWorkflowInput = {
   id: string
   repository: Repository
+  tossError?: boolean
 }
 type DocumentsProcessingWorkflowOutput = {
   tableName: string
 }
 export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
-  const { id, repository } = input
+  const { id, repository, tossError = false} = input
 
   await createS3Bucket({ bucket: id })
 
@@ -39,13 +41,15 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     gitRepoUrl: url,
     gitRepoBranch: branch,
     gitRepoDirectory: path,
-    fileExtensions
+    fileExtensions,
+    tossError
   })
 
   const { tableName } = await processDocuments({
     workflowId: id,
     s3Bucket: id,
-    zipFileName
+    zipFileName,
+    tossError
   })
 
   await deleteS3Object({ bucket: id, key: zipFileName })
@@ -61,13 +65,14 @@ type QueryWorkflowInput = {
   conversationId?: string
   query: string
   latestDocumentProcessingId: string
+  tossError?: boolean
 }
 type QueryWorkflowOutput = {
   conversationId: string
   response: string
 }
 export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> {
-  const { latestDocumentProcessingId, query } = input
+  const { latestDocumentProcessingId, query, tossError = false } = input
   let { conversationId } = input
 
   if (!conversationId) {
@@ -78,13 +83,15 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
   const { conversationFilename } = await generatePrompt({
     query,
     latestDocumentProcessingId,
-    s3Bucket: conversationId
+    s3Bucket: conversationId,
+    tossError
   })
 
   const { response } = await invokePrompt({
     query,
     s3Bucket: conversationId,
-    conversationFilename
+    conversationFilename,
+    tossError
   })
 
   return { conversationId, response }
