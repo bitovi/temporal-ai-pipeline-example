@@ -18,7 +18,7 @@ async function run() {
       query,
       latestDocumentProcessingId,
       conversationId,
-      tossError: true
+      failRate: 0.6
     }],
     workflowId: id
   });

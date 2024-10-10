@@ -20,7 +20,7 @@ async function run() {
         path: 'docs',
         fileExtensions: ['md']
       },
-      tossError: true
+      failRate: 0.6
     }],
     workflowId: id
   });

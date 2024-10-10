@@ -10,7 +10,7 @@ type GetRelatedDocumentsInput = {
   query: string
   latestDocumentProcessingId: string
   s3Bucket: string
-  tossError?: boolean
+  failRate?: number
 }
 
 type GetRelatedDocumentsOutput = {
@@ -18,17 +18,17 @@ type GetRelatedDocumentsOutput = {
 }
 
 export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<GetRelatedDocumentsOutput> {
-  const { query, latestDocumentProcessingId, s3Bucket, tossError } = input
+  const { query, latestDocumentProcessingId, s3Bucket, failRate } = input
 
   const pgVectorStore = await getPGVectorStore()
   const results = await pgVectorStore.similaritySearch(query, 5, {
     workflowId: latestDocumentProcessingId
   });
 
-  if (tossError) {
+  if (failRate) {
     const randomErr = Math.random()
-    if (randomErr < 0.6) {
-      throw new Error()
+    if (randomErr < failRate) {
+      throw new Error('Failed performing similarity search on embedding.')
     }
   }
 
@@ -50,13 +50,13 @@ type InvokePromptInput = {
   query: string
   s3Bucket: string
   conversationFilename: string
-  tossError?: boolean
+  failRate?: number
 }
 type InvokePromptOutput = {
   response: string
 }
 export async function invokePrompt(input: InvokePromptInput): Promise<InvokePromptOutput> {
-  const { query, s3Bucket, conversationFilename, tossError } = input
+  const { query, s3Bucket, conversationFilename, failRate } = input
 
   const conversationResponse = await getS3Object({
     bucket: s3Bucket,
@@ -70,10 +70,10 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
     relevantDocumentation = documentation.context.map(({ pageContent }) => pageContent)
   }
   const gptModel = getGPTModel()
-  if (tossError) {
+  if (failRate) {
     const randomErr = Math.random()
-    if (randomErr < 0.8) {
-      throw new Error()
+    if (randomErr < failRate) {
+      throw new Error('Rate limit reached on Open AI key.')
     }
   }
   const response = await gptModel.invoke([

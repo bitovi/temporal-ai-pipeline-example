@@ -23,13 +23,13 @@ type Repository = {
 type DocumentsProcessingWorkflowInput = {
   id: string
   repository: Repository
-  tossError?: boolean
+  failRate?: number
 }
 type DocumentsProcessingWorkflowOutput = {
   tableName: string
 }
 export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
-  const { id, repository, tossError = false} = input
+  const { id, repository, failRate } = input
 
   await createS3Bucket({ bucket: id })
 
@@ -42,14 +42,14 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     gitRepoBranch: branch,
     gitRepoDirectory: path,
     fileExtensions,
-    tossError
+    failRate
   })
 
   const { tableName } = await processDocuments({
     workflowId: id,
     s3Bucket: id,
     zipFileName,
-    tossError
+    failRate
   })
 
   await deleteS3Object({ bucket: id, key: zipFileName })
@@ -65,14 +65,14 @@ type QueryWorkflowInput = {
   conversationId?: string
   query: string
   latestDocumentProcessingId: string
-  tossError?: boolean
+  failRate?: number
 }
 type QueryWorkflowOutput = {
   conversationId: string
   response: string
 }
 export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> {
-  const { latestDocumentProcessingId, query, tossError = false } = input
+  const { latestDocumentProcessingId, query, failRate } = input
   let { conversationId } = input
 
   if (!conversationId) {
@@ -84,14 +84,14 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
     query,
     latestDocumentProcessingId,
     s3Bucket: conversationId,
-    tossError
+    failRate
   })
 
   const { response } = await invokePrompt({
     query,
     s3Bucket: conversationId,
     conversationFilename,
-    tossError
+    failRate
   })
 
   return { conversationId, response }
