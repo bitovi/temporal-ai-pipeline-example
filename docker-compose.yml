@@ -52,7 +52,7 @@ services:
     container_name: temporal-ai-pipeline_process-documents-worker
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: src/process-documents-worker/Dockerfile.dev
     depends_on:
       temporal-dev-server:
         condition: service_healthy
@@ -70,10 +70,4 @@ services:
       - DATABASE_TABLE_NAME=vector_db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./src:/usr/src/app/src
-    working_dir: /usr/src/app/src/process-documents-worker 
-    command: >
-      sh -c '\
-        sleep 10 \
-        && go run main.go \
-      '
+      - ./:/temporal-ai-pipeline-example
