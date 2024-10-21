@@ -121,3 +121,42 @@ func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (Collect
 
 	return CollectDocumentsOutput{ZipFileName: zipFileName}, nil
 }
+
+type ProcessDocumentsInput struct {
+	WorkflowID  string
+	S3Bucket    string
+	ZipFileName string
+}
+
+type ProcessDocumentsOutput struct {
+	TableName string
+}
+
+var (
+	OPENAI_API_KEY             = os.Getenv("OPENAI_API_KEY")
+	DATABASE_CONNECTION_STRING = os.Getenv("DATABASE_CONNECTION_STRING")
+	DATABASE_TABEL_NAME        = os.Getenv("DATABASE_TABEL_NAME")
+)
+
+func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (ProcessDocumentsOutput, error) {
+	logger := activity.GetLogger(ctx)
+	workflowID := input.WorkflowID
+	s3Bucket := input.S3Bucket
+	zipFileName := input.ZipFileName
+	temporaryDirectory := workflowID
+
+	if _, err := os.Stat(temporaryDirectory); os.IsNotExist(err) {
+		err := os.MkdirAll(temporaryDirectory, 0755)
+		if err != nil {
+			logger.Error("Error creating directory.")
+			return ProcessDocumentsOutput{}, err
+		}
+	}
+
+	_, err := GetS3Object(ctx, GetS3ObjectInput{s3Bucket, zipFileName})
+	if err != nil {
+		return ProcessDocumentsOutput{}, err
+	}
+
+	return ProcessDocumentsOutput{TableName: "Placeholder"}, nil
+}

@@ -81,3 +81,26 @@ func putS3Object(ctx context.Context, input PutS3ObjectInput) error {
 	}
 	return nil
 }
+
+type GetS3ObjectInput struct {
+	Bucket string
+	Key    string
+}
+
+func GetS3Object(ctx context.Context, input GetS3ObjectInput) ([]byte, error) {
+	s3Client, err := getClient(ctx)
+	resp, err := s3Client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(input.Bucket),
+		Key:    aws.String(input.Key),
+	})
+	if err != nil {
+		log.Fatal("Error from s3Client.GetS3Object:", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body := new(bytes.Buffer)
+	_, err = body.ReadFrom(resp.Body)
+	return body.Bytes(), err
+
+}

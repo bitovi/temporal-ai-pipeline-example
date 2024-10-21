@@ -53,9 +53,21 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 
-	return DocumentsProcessingWorkflowOutput{TableName: "Valid tableName, placeholder."}, nil
+	// Process Documents
+	//TODO: Think of  better naming for activities options
+	aoLongTime := workflow.ActivityOptions{
+		StartToCloseTimeout: 50 * time.Minute,
+	}
+	ctx = workflow.WithActivityOptions(ctx, aoLongTime)
 
-	//TODO: Implement correct return
-	/* 	return DocumentsProcessingWorkflowOutput{TableName: tableName}, nil
-	 */
+	processDocumentsInput := activities.ProcessDocumentsInput{WorkflowID: id, S3Bucket: id, ZipFileName: zipFileName.ZipFileName}
+
+	var tableName activities.ProcessDocumentsOutput
+	err = workflow.ExecuteActivity(ctx, activities.ProcessDocuments, processDocumentsInput).Get(ctx, &tableName)
+	if err != nil {
+		logger.Error("Activity failed.", "Error", err)
+		return DocumentsProcessingWorkflowOutput{}, err
+	}
+
+	return DocumentsProcessingWorkflowOutput{TableName: "tableName.TableName"}, nil
 }

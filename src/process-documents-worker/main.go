@@ -24,6 +24,7 @@ func main() {
 	w.RegisterWorkflow(workflows.DocumentsProcessingWorkflow)
 	w.RegisterActivity(activities.CreateS3Bucket)
 	w.RegisterActivity(activities.CollectDocuments)
+	w.RegisterActivity(activities.ProcessDocuments)
 
 	err = w.Run(worker.InterruptCh())
 	if err != nil {
