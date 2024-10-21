@@ -36,6 +36,18 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 
+	// Collect Documents
+	id := input.ID
+	repository := input.Repository
+	collectDocumentsInput := activities.CollectDocumentsInput{WorkflowID: id, S3Bucket: id, GitRepoURL: repository.URL, GitRepoBranch: repository.Branch, GitRepoDirectory: repository.Path, FileExtensions: repository.FileExtensions}
+
+	var zipFileName activities.CollectDocumentsOutput
+	err = workflow.ExecuteActivity(ctx, activities.CollectDocuments, collectDocumentsInput).Get(ctx, &zipFileName)
+	if err != nil {
+		logger.Error("Activity failed.", "Error", err)
+		return DocumentsProcessingWorkflowOutput{}, err
+	}
+
 	return DocumentsProcessingWorkflowOutput{TableName: "Valid tableName, placeholder."}, nil
 
 	//TODO: Implement correct return
