@@ -1,12 +1,12 @@
-FROM node:20
+FROM golang:1.23
 
 WORKDIR /usr/src/app
 
-COPY package.json package.json
-COPY package-lock.json package-lock.json
-COPY src src
-COPY test/prompts/hatchify-assistant.json test/prompts/hatchify-assistant.json
+COPY go.mod go.mod 
+COPY src src 
 
-RUN npm ci
+RUN go mod tidy
 
-CMD ["npm", "run", "start"]
+WORKDIR "/src/process-documents-worker"
+
+CMD ["air"]

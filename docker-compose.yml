@@ -74,7 +74,7 @@ services:
     command: >
       sh -c '\
         sleep 10 \
-        && npx nodemon --watch src --ext ts src/process-documents-worker.ts \
+        && air \
       '
 
   prompt-worker:
