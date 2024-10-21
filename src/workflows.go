@@ -37,6 +37,11 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 	}
 
 	// Collect Documents
+	aoMediumTime := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+	}
+	ctx = workflow.WithActivityOptions(ctx, aoMediumTime)
+
 	id := input.ID
 	repository := input.Repository
 	collectDocumentsInput := activities.CollectDocumentsInput{WorkflowID: id, S3Bucket: id, GitRepoURL: repository.URL, GitRepoBranch: repository.Branch, GitRepoDirectory: repository.Path, FileExtensions: repository.FileExtensions}
