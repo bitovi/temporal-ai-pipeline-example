@@ -74,7 +74,7 @@ services:
     command: >
       sh -c '\
         sleep 10 \
-        && air \
+        && cd /src/process-documents-worker && go run main.go \
       '
 
   prompt-worker:
