@@ -88,7 +88,7 @@ type GetS3ObjectInput struct {
 }
 
 func GetS3Object(ctx context.Context, input GetS3ObjectInput) ([]byte, error) {
-	s3Client, err := getClient(ctx)
+	s3Client, _ := getClient(ctx)
 	resp, err := s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(input.Bucket),
 		Key:    aws.String(input.Key),
@@ -103,4 +103,32 @@ func GetS3Object(ctx context.Context, input GetS3ObjectInput) ([]byte, error) {
 	_, err = body.ReadFrom(resp.Body)
 	return body.Bytes(), err
 
+}
+
+type DeleteS3BucketInput struct {
+	Bucket string
+}
+
+func DeleteS3Bucket(ctx context.Context, input DeleteS3BucketInput) (*s3.DeleteBucketOutput, error) {
+	s3Client, _ := getClient(ctx)
+	_, _ = s3Client.DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String(input.Bucket),
+	})
+
+	return nil, nil
+}
+
+type DeleteS3ObjectInput struct {
+	Bucket string
+	Key    string
+}
+
+func DeleteS3Object(ctx context.Context, input DeleteS3ObjectInput) (*s3.DeleteObjectOutput, error) {
+	s3Client, _ := getClient(ctx)
+	_, _ = s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(input.Bucket),
+		Key:    aws.String(input.Key),
+	})
+
+	return nil, nil
 }

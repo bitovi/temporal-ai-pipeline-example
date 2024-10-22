@@ -25,6 +25,8 @@ func main() {
 	w.RegisterActivity(activities.CreateS3Bucket)
 	w.RegisterActivity(activities.CollectDocuments)
 	w.RegisterActivity(activities.ProcessDocuments)
+	w.RegisterActivity(activities.DeleteS3Object)
+	w.RegisterActivity(activities.DeleteS3Bucket)
 
 	err = w.Run(worker.InterruptCh())
 	if err != nil {

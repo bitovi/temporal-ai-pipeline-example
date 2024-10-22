@@ -69,5 +69,21 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 
-	return DocumentsProcessingWorkflowOutput{TableName: "tableName.TableName"}, nil
+	//Delete S3 Object
+	ctx = workflow.WithActivityOptions(ctx, ao)
+	deleteS3ObjectInput := activities.DeleteS3ObjectInput{Bucket: input.ID, Key: zipFileName.ZipFileName}
+	err = workflow.ExecuteActivity(ctx, activities.DeleteS3Object, deleteS3ObjectInput).Get(ctx, nil)
+	if err != nil {
+		logger.Error("Activity failed.", "Error", err)
+		return DocumentsProcessingWorkflowOutput{}, err
+	}
+	//Delete S3 Bucket
+	deleteS3BucketInput := activities.DeleteS3BucketInput{Bucket: input.ID}
+	err = workflow.ExecuteActivity(ctx, activities.DeleteS3Bucket, deleteS3BucketInput).Get(ctx, nil)
+	if err != nil {
+		logger.Error("Activity failed.", "Error", err)
+		return DocumentsProcessingWorkflowOutput{}, err
+	}
+
+	return DocumentsProcessingWorkflowOutput{TableName: tableName.TableName}, nil
 }
