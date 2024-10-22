@@ -201,6 +201,11 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 		}
 	}
 
+	err = os.RemoveAll(temporaryDirectory)
+	if err != nil {
+		return ProcessDocumentsOutput{}, fmt.Errorf("error removing temporary directory: %v", err)
+	}
+
 	return ProcessDocumentsOutput{TableName: DATABASE_TABLE_NAME}, nil
 }
 
