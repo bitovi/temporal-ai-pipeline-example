@@ -272,6 +272,7 @@ func getPGVectorStore(ctx context.Context) *pgx.Conn {
 	return conn
 }
 
+// TODO: (IMPORTANT) Share con
 func getConn(ctx context.Context) (*pgx.Conn, error) {
 	conn, err := pgx.Connect(ctx, DATABASE_CONNECTION_STRING)
 	if err != nil {
@@ -294,12 +295,7 @@ func createTable(ctx context.Context, conn *pgx.Conn) {
 		panic(err)
 	}
 
-	_, err = conn.Exec(ctx, "DROP TABLE IF EXISTS documents")
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = conn.Exec(ctx, "CREATE TABLE documents (id bigserial PRIMARY KEY, content text, embedding vector(1536))")
+	_, err = conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS documents (id bigserial PRIMARY KEY, content text, embedding vector(1536))")
 	if err != nil {
 		panic(err)
 	}
