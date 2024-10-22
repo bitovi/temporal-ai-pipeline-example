@@ -137,7 +137,7 @@ type ProcessDocumentsOutput struct {
 var (
 	OPENAI_API_KEY             = os.Getenv("OPENAI_API_KEY")
 	DATABASE_CONNECTION_STRING = os.Getenv("DATABASE_CONNECTION_STRING")
-	DATABASE_TABEL_NAME        = os.Getenv("DATABASE_TABEL_NAME")
+	DATABASE_TABLE_NAME        = os.Getenv("DATABASE_TABLE_NAME")
 )
 
 func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (ProcessDocumentsOutput, error) {
@@ -170,17 +170,38 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 		return ProcessDocumentsOutput{}, err
 	}
 
-	err = os.Remove(zipFileName)
+	err = os.Remove(filepath.Join(temporaryDirectory, zipFileName))
 	if err != nil {
 		return ProcessDocumentsOutput{}, err
 	}
-	_, err = os.ReadDir(temporaryDirectory)
-	if err != nil {
-		return ProcessDocumentsOutput{}, err
-	}
-	getPGVectorStore(ctx)
 
-	return ProcessDocumentsOutput{TableName: "Placeholder"}, nil
+	vectorStoreConn := getPGVectorStore(ctx)
+
+	fileList, err := os.ReadDir(temporaryDirectory)
+	if err != nil {
+		return ProcessDocumentsOutput{}, err
+	}
+
+	for _, file := range fileList {
+		if !file.IsDir() && strings.Contains(file.Name(), ".") {
+			filePath := filepath.Join(temporaryDirectory, file.Name())
+			pageContent, err := os.ReadFile(filePath)
+
+			if err != nil {
+				return ProcessDocumentsOutput{}, fmt.Errorf("error reading file: %v", err)
+			}
+
+			if len(pageContent) > 0 {
+				err := saveData(ctx, vectorStoreConn, string(pageContent))
+				if err != nil {
+					return ProcessDocumentsOutput{}, fmt.Errorf("error adding document to vector store: %v", err)
+				}
+
+			}
+		}
+	}
+
+	return ProcessDocumentsOutput{TableName: DATABASE_TABLE_NAME}, nil
 }
 
 func Unzip(src, dest string) error {
@@ -244,11 +265,11 @@ func Unzip(src, dest string) error {
 	return nil
 }
 
-func getPGVectorStore(ctx context.Context) {
-
+func getPGVectorStore(ctx context.Context) *pgx.Conn {
 	conn, _ := getConn(ctx)
 	createTable(ctx, conn)
 
+	return conn
 }
 
 func getConn(ctx context.Context) (*pgx.Conn, error) {
@@ -282,4 +303,13 @@ func createTable(ctx context.Context, conn *pgx.Conn) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func saveData(ctx context.Context, conn *pgx.Conn, input string) error {
+	_, err := conn.Exec(ctx, "INSERT INTO documents (content) VALUES ($1)", input)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
