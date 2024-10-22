@@ -71,3 +71,27 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./:/temporal-ai-pipeline-example
+
+  prompt-worker:
+    container_name: temporal-ai-pipeline_invoke-prompt-worker
+    build:
+      context: .
+      dockerfile: src/invoke-prompt-worker/Dockerfile.dev
+    depends_on:
+      temporal-dev-server:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+    restart: always
+    environment:
+      - TEMPORAL_ADDRESS=temporal-dev-server:7233
+      - AWS_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=testUser
+      - AWS_SECRET_ACCESS_KEY=testAccessKey
+      - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
+      - DATABASE_TABLE_NAME=vector_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./:/temporal-ai-pipeline-example

@@ -87,3 +87,35 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 
 	return DocumentsProcessingWorkflowOutput{TableName: tableName.TableName}, nil
 }
+
+type QueryWorkflowInput struct {
+	LatestDocumentProcessingID string
+	Query                      string
+	ConversationID             string
+}
+
+type QueryWorkflowOutput struct {
+	ConversationID string
+	Response       string
+}
+
+func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (QueryWorkflowOutput, error) {
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 1 * time.Minute,
+	}
+	ctx = workflow.WithActivityOptions(ctx, ao)
+	_ = workflow.GetLogger(ctx)
+
+	//Create Bucket
+	/* 	createS3BucketInput := activities.CreateS3BucketInput{Bucket: input.ID}
+	   	err := workflow.ExecuteActivity(ctx, activities.CreateS3Bucket, createS3BucketInput).Get(ctx, nil)
+	   	if err != nil {
+	   		logger.Error("Activity failed.", "Error", err)
+	   		return QueryWorkflowOutput{}, err
+	   	}
+	*/
+	return QueryWorkflowOutput{
+		ConversationID: "conversationID",
+		Response:       "response",
+	}, nil
+}

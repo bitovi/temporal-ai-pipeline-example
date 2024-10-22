@@ -1,0 +1,18 @@
+root = "." 
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/invoke-prompt-worker src/invoke-prompt-worker/*.go"
+bin = "tmp/app"
+
+full_bin = "./tmp/invoke-prompt-worker"
+log = "air_errors.log"
+include_ext = ["go"]
+exclude_dir = ["tmp"]
+delay = 1000
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
