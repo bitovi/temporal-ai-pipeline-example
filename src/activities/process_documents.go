@@ -11,6 +11,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
+	pgxvector "github.com/pgvector/pgvector-go/pgx"
 	"go.temporal.io/sdk/activity"
 )
 
@@ -176,6 +178,7 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 	if err != nil {
 		return ProcessDocumentsOutput{}, err
 	}
+	getPGVectorStore(ctx)
 
 	return ProcessDocumentsOutput{TableName: "Placeholder"}, nil
 }
@@ -239,4 +242,44 @@ func Unzip(src, dest string) error {
 	}
 
 	return nil
+}
+
+func getPGVectorStore(ctx context.Context) {
+
+	conn, _ := getConn(ctx)
+	createTable(ctx, conn)
+
+}
+
+func getConn(ctx context.Context) (*pgx.Conn, error) {
+	conn, err := pgx.Connect(ctx, DATABASE_CONNECTION_STRING)
+	if err != nil {
+		//TODO: Error handling
+		panic(err)
+	}
+	//Todo: see if this line can be cut
+	/*defer conn.Close(ctx) */
+	return conn, nil
+}
+
+func createTable(ctx context.Context, conn *pgx.Conn) {
+	_, err := conn.Exec(ctx, "CREATE EXTENSION IF NOT EXISTS vector")
+	if err != nil {
+		panic(err)
+	}
+
+	err = pgxvector.RegisterTypes(ctx, conn)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = conn.Exec(ctx, "DROP TABLE IF EXISTS documents")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = conn.Exec(ctx, "CREATE TABLE documents (id bigserial PRIMARY KEY, content text, embedding vector(1536))")
+	if err != nil {
+		panic(err)
+	}
 }
