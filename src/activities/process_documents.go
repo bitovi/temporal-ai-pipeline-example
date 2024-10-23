@@ -312,7 +312,7 @@ func createTable(ctx context.Context, conn *pgx.Conn) {
 }
 
 func saveData(ctx context.Context, conn *pgx.Conn, input string) error {
-	embeddings, err := FetchEmbeddings(input)
+	embeddings, err := FetchEmbeddings([]string{input})
 	if err != nil {
 		return err
 	}
@@ -359,7 +359,7 @@ func FetchData(ctx context.Context, conn *pgx.Conn, documentId string) ([]Docume
 	return documents, nil
 }
 
-type apiRequest struct {
+type FetchEmbeddingsApiRequest struct {
 	Input []string `json:"input"`
 	Model string   `json:"model"`
 }
@@ -369,11 +369,11 @@ type embeddingResponse struct {
 	} `json:"data"`
 }
 
-func FetchEmbeddings(input string) ([]float32, error) {
+func FetchEmbeddings(input []string) ([]float32, error) {
 	url := "https://api.openai.com/v1/embeddings"
 
-	data := &apiRequest{
-		Input: []string{input},
+	data := &FetchEmbeddingsApiRequest{
+		Input: input,
 		Model: "text-embedding-ada-002",
 	}
 
@@ -409,4 +409,108 @@ func FetchEmbeddings(input string) ([]float32, error) {
 	}
 
 	return result.Data[0].Embedding, nil
+}
+
+// Remove unecessary typing
+type ChatCompletion struct {
+	ID                string   `json:"id"`
+	Object            string   `json:"object"`
+	Created           int64    `json:"created"`
+	Model             string   `json:"model"`
+	Choices           []Choice `json:"choices"`
+	Usage             Usage    `json:"usage"`
+	SystemFingerprint *string  `json:"system_fingerprint"`
+}
+
+type Choice struct {
+	Index        int     `json:"index"`
+	Message      Message `json:"message"`
+	Logprobs     *string `json:"logprobs"`
+	FinishReason string  `json:"finish_reason"`
+}
+
+type Message struct {
+	Role    string  `json:"role"`
+	Content string  `json:"content"`
+	Refusal *string `json:"refusal"`
+}
+
+type Usage struct {
+	PromptTokens            int                    `json:"prompt_tokens"`
+	CompletionTokens        int                    `json:"completion_tokens"`
+	TotalTokens             int                    `json:"total_tokens"`
+	PromptTokensDetails     TokenDetails           `json:"prompt_tokens_details"`
+	CompletionTokensDetails CompletionTokenDetails `json:"completion_tokens_details"`
+}
+
+type TokenDetails struct {
+	CachedTokens int `json:"cached_tokens"`
+}
+
+type CompletionTokenDetails struct {
+	ReasoningTokens int `json:"reasoning_tokens"`
+}
+
+type InvokeApiRequest struct {
+	Model       string             `json:"model"`
+	Messages    []InvokeApiMessage `json:"messages"`
+	Temperature float64            `json:"temperature"`
+}
+
+type InvokeApiMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+func Invoke(input [][]string) (ChatCompletion, error) {
+	url := "https://api.openai.com/v1/chat/completions"
+
+	messages := make([]InvokeApiMessage, len(input))
+	for i, p := range input {
+		messages[i] = InvokeApiMessage{
+			Role:    p[0],
+			Content: p[1],
+		}
+	}
+
+	data := InvokeApiRequest{
+		Model:    "gpt-3.5-turbo",
+		Messages: messages,
+	}
+
+	//TODO: (IMPORTANT) Reuse the following code
+	b, err := json.Marshal(data)
+	if err != nil {
+
+		return ChatCompletion{}, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		return ChatCompletion{}, err
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", OPENAI_API_KEY))
+	req.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return ChatCompletion{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return ChatCompletion{}, fmt.Errorf("bad status code: %d - %s", resp.StatusCode, body)
+	}
+
+	var result ChatCompletion
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return ChatCompletion{}, err
+	}
+
+	return result, nil
 }

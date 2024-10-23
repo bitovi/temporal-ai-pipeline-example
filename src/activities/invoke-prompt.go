@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 type GetRelatedDocumentsInput struct {
@@ -71,5 +72,19 @@ func InvokePrompt(ctx context.Context, input InvokePromptInput) (InvokePromptOut
 		}
 	}
 
-	return InvokePromptOutput{}, nil
+	//Format data in user friendly format
+	prompt := [][]string{
+		{"system", "You are a friendly, helpful software assistant. Your goal is to help users write CRUD-based software applications using the the Hatchify open-source project in TypeScript."},
+		{"system", "You should respond in short paragraphs, using Markdown formatting, separated with two newlines to keep your responses easily readable."},
+		{"system", "Whenever possible, use code examples derived from the documentation provided."},
+		{"system", "Import references must be included where relevant so that the reader can easily figure out how to import the necessary dependencies."},
+		{"system", "Do not use your existing knowledge to determine import references, only use import references as they appear in the relevant documentation for Hatchify"},
+		{"system", "Here is the Hatchify documentation that is relevant to the user's query: " + strings.Join(relevantDocumentation, "\n\n")},
+		{"user", input.Query},
+	}
+
+	invokeResponse, _ := Invoke(prompt)
+
+	//TODO: Ensure its truly just one choice object being returned
+	return InvokePromptOutput{invokeResponse.Choices[0].Message.Content}, nil
 }

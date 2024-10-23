@@ -134,15 +134,15 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 
 	// Generates conversationFilename
 	invokePromptInput := activities.InvokePromptInput{Query: query, S3Bucket: conversationID, ConversationFilename: conversationFilename.ConversationFilename}
-	var invokePromptOutput activities.InvokePromptOutput
-	err = workflow.ExecuteActivity(ctx, activities.InvokePrompt, invokePromptInput).Get(ctx, &invokePromptOutput)
+	var response activities.InvokePromptOutput
+	err = workflow.ExecuteActivity(ctx, activities.InvokePrompt, invokePromptInput).Get(ctx, &response)
 	if err != nil {
 		logger.Error("Activity failed.", "Error", err)
 		return QueryWorkflowOutput{}, err
 	}
 
 	return QueryWorkflowOutput{
-		ConversationID: "conversationID",
-		Response:       "response",
+		ConversationID: conversationID,
+		Response:       response.Response,
 	}, nil
 }
