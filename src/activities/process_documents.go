@@ -374,37 +374,11 @@ func FetchEmbeddings(input []string) ([]float32, error) {
 		Model: "text-embedding-ada-002",
 	}
 
-	b, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", OPENAI_API_KEY))
-	req.Header.Add("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("bad status code: %d - %s", resp.StatusCode, body)
-	}
-
 	var result embeddingResponse
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	result, err := PostRequest(url, data, result, OPENAI_API_KEY)
 	if err != nil {
 		return nil, err
 	}
-
 	return result.Data[0].Embedding, nil
 }
 
@@ -475,38 +449,43 @@ func Invoke(input [][]string) (ChatCompletion, error) {
 		Messages: messages,
 	}
 
-	//TODO: (IMPORTANT) Reuse the following code
-	b, err := json.Marshal(data)
+	var result ChatCompletion
+	result, err := PostRequest(url, data, result, OPENAI_API_KEY)
 	if err != nil {
-
 		return ChatCompletion{}, err
 	}
 
+	return result, nil
+}
+
+func PostRequest[T any](url string, body any, result T, apiKey string) (T, error) {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return result, err
+	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
 	if err != nil {
-		return ChatCompletion{}, err
+		return result, err
 	}
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", OPENAI_API_KEY))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	req.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return ChatCompletion{}, err
+		return result, err
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return ChatCompletion{}, fmt.Errorf("bad status code: %d - %s", resp.StatusCode, body)
+		return result, fmt.Errorf("bad status code: %d - %s", resp.StatusCode, body)
 	}
 
-	var result ChatCompletion
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		return ChatCompletion{}, err
+		return result, err
 	}
 
 	return result, nil

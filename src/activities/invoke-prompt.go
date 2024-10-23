@@ -87,7 +87,5 @@ func InvokePrompt(ctx context.Context, input InvokePromptInput) (InvokePromptOut
 	}
 
 	invokeResponse, _ := Invoke(prompt)
-
-	//TODO: Ensure its truly just one choice object being returned
 	return InvokePromptOutput{invokeResponse.Choices[0].Message.Content}, nil
 }
