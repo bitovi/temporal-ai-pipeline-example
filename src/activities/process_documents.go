@@ -360,7 +360,7 @@ type FetchEmbeddingsApiRequest struct {
 	Input []string `json:"input"`
 	Model string   `json:"model"`
 }
-type embeddingResponse struct {
+type EmbeddingResponse struct {
 	Data []struct {
 		Embedding []float32 `json:"embedding"`
 	} `json:"data"`
@@ -374,7 +374,7 @@ func FetchEmbeddings(input []string) ([]float32, error) {
 		Model: "text-embedding-ada-002",
 	}
 
-	var result embeddingResponse
+	var result EmbeddingResponse
 	result, err := PostRequest(url, data, result, OPENAI_API_KEY)
 	if err != nil {
 		return nil, err
@@ -382,7 +382,6 @@ func FetchEmbeddings(input []string) ([]float32, error) {
 	return result.Data[0].Embedding, nil
 }
 
-// Remove unecessary typing
 type ChatCompletion struct {
 	Choices []Choice `json:"choices"`
 }
