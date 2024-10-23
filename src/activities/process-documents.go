@@ -166,6 +166,11 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 		return ProcessDocumentsOutput{}, err
 	}
 
+	err = os.Remove(zipFileName)
+	if err != nil {
+		return ProcessDocumentsOutput{}, err
+	}
+
 	vectorStoreConn := getPGVectorStore(ctx)
 
 	fileList, err := os.ReadDir(temporaryDirectory)
@@ -273,7 +278,6 @@ func GetConn(ctx context.Context) (*pgx.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close(ctx)
 	return conn, nil
 }
 
