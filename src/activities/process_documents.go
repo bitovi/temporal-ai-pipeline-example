@@ -384,48 +384,20 @@ func FetchEmbeddings(input []string) ([]float32, error) {
 
 // Remove unecessary typing
 type ChatCompletion struct {
-	ID                string   `json:"id"`
-	Object            string   `json:"object"`
-	Created           int64    `json:"created"`
-	Model             string   `json:"model"`
-	Choices           []Choice `json:"choices"`
-	Usage             Usage    `json:"usage"`
-	SystemFingerprint *string  `json:"system_fingerprint"`
+	Choices []Choice `json:"choices"`
 }
 
 type Choice struct {
-	Index        int     `json:"index"`
-	Message      Message `json:"message"`
-	Logprobs     *string `json:"logprobs"`
-	FinishReason string  `json:"finish_reason"`
+	Message Message `json:"message"`
 }
 
 type Message struct {
-	Role    string  `json:"role"`
-	Content string  `json:"content"`
-	Refusal *string `json:"refusal"`
-}
-
-type Usage struct {
-	PromptTokens            int                    `json:"prompt_tokens"`
-	CompletionTokens        int                    `json:"completion_tokens"`
-	TotalTokens             int                    `json:"total_tokens"`
-	PromptTokensDetails     TokenDetails           `json:"prompt_tokens_details"`
-	CompletionTokensDetails CompletionTokenDetails `json:"completion_tokens_details"`
-}
-
-type TokenDetails struct {
-	CachedTokens int `json:"cached_tokens"`
-}
-
-type CompletionTokenDetails struct {
-	ReasoningTokens int `json:"reasoning_tokens"`
+	Content string `json:"content"`
 }
 
 type InvokeApiRequest struct {
-	Model       string             `json:"model"`
-	Messages    []InvokeApiMessage `json:"messages"`
-	Temperature float64            `json:"temperature"`
+	Model    string             `json:"model"`
+	Messages []InvokeApiMessage `json:"messages"`
 }
 
 type InvokeApiMessage struct {
