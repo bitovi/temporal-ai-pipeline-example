@@ -17,7 +17,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/pgvector/pgvector-go"
 	pgxvector "github.com/pgvector/pgvector-go/pgx"
-	"go.temporal.io/sdk/activity"
 )
 
 type CollectDocumentsInput struct {
@@ -34,8 +33,6 @@ type CollectDocumentsOutput struct {
 }
 
 func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (CollectDocumentsOutput, error) {
-	logger := activity.GetLogger(ctx)
-
 	temporaryDirectory := input.WorkflowID
 	if err := os.MkdirAll(temporaryDirectory, os.ModePerm); err != nil {
 		return CollectDocumentsOutput{}, err
@@ -48,14 +45,12 @@ func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (Collect
 
 	temporaryGitHubDirectory := filepath.Join(temporaryDirectory, repoPath)
 	if err := os.RemoveAll(temporaryGitHubDirectory); err != nil {
-		logger.Error("Error when deleting files at temporaryGitHubDirectory.", err)
 		return CollectDocumentsOutput{}, err
 	}
 
 	// Clone the git repository
 	cmd := exec.Command("git", "clone", "--depth", "1", "--branch", input.GitRepoBranch, fmt.Sprintf("https://github.com/%s.git", repoPath), temporaryGitHubDirectory)
 	if err := cmd.Run(); err != nil {
-		logger.Error("Error when cloning github repository.", err)
 		return CollectDocumentsOutput{}, err
 	}
 
@@ -76,7 +71,6 @@ func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (Collect
 		return nil
 	})
 	if err != nil {
-		logger.Error("Error when filtering files in temporaryGitHubDirectory.", err)
 		return CollectDocumentsOutput{}, err
 	}
 
@@ -96,7 +90,6 @@ func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (Collect
 	for _, filePath := range filteredFileList {
 		sourceFile, err := os.Open(filePath)
 		if err != nil {
-			logger.Error("Error when opening file.", err)
 			return CollectDocumentsOutput{}, err
 		}
 		defer sourceFile.Close()
@@ -104,13 +97,11 @@ func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (Collect
 		fileName := filepath.Base(filePath)
 		writer, err := archive.Create(fileName)
 		if err != nil {
-			logger.Error("Error when adding file to zip.", err)
 			return CollectDocumentsOutput{}, err
 		}
 
 		_, err = io.Copy(writer, sourceFile)
 		if err != nil {
-			logger.Error("Error when writing file into zip.", err)
 			return CollectDocumentsOutput{}, err
 		}
 	}
@@ -118,7 +109,6 @@ func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (Collect
 
 	fileContent, err := os.ReadFile(zipFileLocation)
 	if err != nil {
-		logger.Error("Error when reading file content.", err)
 		return CollectDocumentsOutput{}, err
 	}
 
@@ -144,7 +134,6 @@ var (
 )
 
 func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (ProcessDocumentsOutput, error) {
-	logger := activity.GetLogger(ctx)
 	workflowID := input.WorkflowID
 	s3Bucket := input.S3Bucket
 	zipFileName := input.ZipFileName
@@ -153,7 +142,6 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 	if _, err := os.Stat(temporaryDirectory); os.IsNotExist(err) {
 		err := os.MkdirAll(temporaryDirectory, 0755)
 		if err != nil {
-			logger.Error("Error creating directory.")
 			return ProcessDocumentsOutput{}, err
 		}
 	}

@@ -28,13 +28,11 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 		StartToCloseTimeout: 1 * time.Minute,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	logger := workflow.GetLogger(ctx)
 
 	//Create Bucket
 	createS3BucketInput := activities.CreateS3BucketInput{Bucket: input.ID}
 	err := workflow.ExecuteActivity(ctx, activities.CreateS3Bucket, createS3BucketInput).Get(ctx, nil)
 	if err != nil {
-		logger.Error("Activity failed.", "Error", err)
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 
@@ -51,12 +49,10 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 	var zipFileName activities.CollectDocumentsOutput
 	err = workflow.ExecuteActivity(ctx, activities.CollectDocuments, collectDocumentsInput).Get(ctx, &zipFileName)
 	if err != nil {
-		logger.Error("Activity failed.", "Error", err)
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 
 	// Process Documents
-	//TODO: Think of  better naming for activities options
 	aoLongTime := workflow.ActivityOptions{
 		StartToCloseTimeout: 50 * time.Minute,
 	}
@@ -67,7 +63,6 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 	var tableName activities.ProcessDocumentsOutput
 	err = workflow.ExecuteActivity(ctx, activities.ProcessDocuments, processDocumentsInput).Get(ctx, &tableName)
 	if err != nil {
-		logger.Error("Activity failed.", "Error", err)
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 
@@ -76,14 +71,14 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 	deleteS3ObjectInput := activities.DeleteS3ObjectInput{Bucket: input.ID, Key: zipFileName.ZipFileName}
 	err = workflow.ExecuteActivity(ctx, activities.DeleteS3Object, deleteS3ObjectInput).Get(ctx, nil)
 	if err != nil {
-		logger.Error("Activity failed.", "Error", err)
+
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 	//Delete S3 Bucket
 	deleteS3BucketInput := activities.DeleteS3BucketInput{Bucket: input.ID}
 	err = workflow.ExecuteActivity(ctx, activities.DeleteS3Bucket, deleteS3BucketInput).Get(ctx, nil)
 	if err != nil {
-		logger.Error("Activity failed.", "Error", err)
+
 		return DocumentsProcessingWorkflowOutput{}, err
 	}
 
