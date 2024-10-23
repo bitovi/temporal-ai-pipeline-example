@@ -123,10 +123,19 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 		}
 	}
 
-	// Generate a new conversation ID if one isn't provided
+	// Generates conversationFilename
 	getRelatedDocumentsInput := activities.GetRelatedDocumentsInput{Query: query, LatestDocumentProcessingId: latestDocumentProcessingID, S3Bucket: conversationID}
-	var conversationFilename activities.CollectDocumentsOutput
+	var conversationFilename activities.GetRelatedDocumentsOutput
 	err := workflow.ExecuteActivity(ctx, activities.GeneratePrompt, getRelatedDocumentsInput).Get(ctx, &conversationFilename)
+	if err != nil {
+		logger.Error("Activity failed.", "Error", err)
+		return QueryWorkflowOutput{}, err
+	}
+
+	// Generates conversationFilename
+	invokePromptInput := activities.InvokePromptInput{Query: query, S3Bucket: conversationID, ConversationFilename: conversationFilename.ConversationFilename}
+	var invokePromptOutput activities.InvokePromptOutput
+	err = workflow.ExecuteActivity(ctx, activities.InvokePrompt, invokePromptInput).Get(ctx, &invokePromptOutput)
 	if err != nil {
 		logger.Error("Activity failed.", "Error", err)
 		return QueryWorkflowOutput{}, err

@@ -24,6 +24,7 @@ func main() {
 	w.RegisterWorkflow(workflows.InvokePromptWorkflow)
 	w.RegisterActivity(activities.CreateS3Bucket)
 	w.RegisterActivity(activities.GeneratePrompt)
+	w.RegisterActivity(activities.InvokePrompt)
 
 	err = w.Run(worker.InterruptCh())
 	if err != nil {

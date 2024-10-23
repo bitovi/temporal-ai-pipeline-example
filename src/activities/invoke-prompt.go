@@ -16,16 +16,6 @@ type GetRelatedDocumentsOutput struct {
 	ConversationFilename string
 }
 
-type InvokePromptInput struct {
-	Query                string
-	S3Bucket             string
-	ConversationFilename string
-}
-
-type InvokePromptOutput struct {
-	Response string
-}
-
 func GeneratePrompt(ctx context.Context, input GetRelatedDocumentsInput) (GetRelatedDocumentsOutput, error) {
 	conn, _ := GetConn(ctx)
 	data, _ := FetchData(ctx, conn, input.Query)
@@ -45,10 +35,41 @@ func GeneratePrompt(ctx context.Context, input GetRelatedDocumentsInput) (GetRel
 	return GetRelatedDocumentsOutput{ConversationFilename: conversationFilename}, nil
 }
 
-func invokePrompt(input InvokePromptInput) (InvokePromptOutput, error) {
-	return InvokePromptOutput{}, nil
+type InvokePromptInput struct {
+	Query                string
+	S3Bucket             string
+	ConversationFilename string
 }
 
-func joinDocumentation(docs []string) bool {
-	return true
+type InvokePromptOutput struct {
+	Response string
+}
+
+func InvokePrompt(ctx context.Context, input InvokePromptInput) (InvokePromptOutput, error) {
+	S3Bucket := input.S3Bucket
+	_ = input.Query
+	conversationFilename := input.ConversationFilename
+
+	response, err := GetS3Object(ctx, GetS3ObjectInput{S3Bucket, conversationFilename})
+	if err != nil {
+		return InvokePromptOutput{}, err
+	}
+
+	conversationContext := string(response)
+	var relevantDocumentation []string
+	if conversationContext != "" {
+		var documentation struct {
+			Context []struct {
+				PageContent string `json:"Content"`
+			} `json:"context"`
+		}
+
+		json.Unmarshal([]byte(conversationContext), &documentation)
+
+		for _, doc := range documentation.Context {
+			_ = append(relevantDocumentation, doc.PageContent)
+		}
+	}
+
+	return InvokePromptOutput{}, nil
 }
