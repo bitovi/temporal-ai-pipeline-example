@@ -116,7 +116,6 @@ func CollectDocuments(ctx context.Context, input CollectDocumentsInput) (Collect
 	}
 	archive.Close()
 
-	// Upload to S3
 	fileContent, err := os.ReadFile(zipFileLocation)
 	if err != nil {
 		logger.Error("Error when reading file content.", err)

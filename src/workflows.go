@@ -106,7 +106,6 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 		StartToCloseTimeout: 1 * time.Minute,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	logger := workflow.GetLogger(ctx)
 
 	conversationID := input.ConversationID
 	latestDocumentProcessingID := input.LatestDocumentProcessingID
@@ -118,7 +117,6 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 		createS3BucketInput := activities.CreateS3BucketInput{Bucket: conversationID}
 		err := workflow.ExecuteActivity(ctx, activities.CreateS3Bucket, createS3BucketInput).Get(ctx, nil)
 		if err != nil {
-			logger.Error("Activity failed.", "Error", err)
 			return QueryWorkflowOutput{}, err
 		}
 	}
@@ -128,7 +126,6 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 	var conversationFilename activities.GetRelatedDocumentsOutput
 	err := workflow.ExecuteActivity(ctx, activities.GeneratePrompt, getRelatedDocumentsInput).Get(ctx, &conversationFilename)
 	if err != nil {
-		logger.Error("Activity failed.", "Error", err)
 		return QueryWorkflowOutput{}, err
 	}
 
@@ -137,7 +134,6 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 	var response activities.InvokePromptOutput
 	err = workflow.ExecuteActivity(ctx, activities.InvokePrompt, invokePromptInput).Get(ctx, &response)
 	if err != nil {
-		logger.Error("Activity failed.", "Error", err)
 		return QueryWorkflowOutput{}, err
 	}
 
