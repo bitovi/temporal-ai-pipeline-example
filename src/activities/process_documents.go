@@ -325,8 +325,12 @@ func saveData(ctx context.Context, conn *pgx.Conn, input string) error {
 	return nil
 }
 
-func FetchData(ctx context.Context, conn *pgx.Conn, documentId string) error {
+type Document struct {
+	ID      int64
+	Content string
+}
 
+func FetchData(ctx context.Context, conn *pgx.Conn, documentId string) ([]Document, error) {
 	//TODO: Is workflow ID the same as documentId?
 	//TODO: Accept query as string instead of ID
 	rows, err := conn.Query(ctx, "SELECT id, content FROM documents WHERE id != $1 ORDER BY embedding <=> (SELECT embedding FROM documents WHERE id = $1) LIMIT 5", documentId)
@@ -337,19 +341,22 @@ func FetchData(ctx context.Context, conn *pgx.Conn, documentId string) error {
 
 	defer rows.Close()
 
+	var documents []Document
+
 	for rows.Next() {
-		var id int64
-		var content string
-		err = rows.Scan(&id, &content)
+		var doc Document
+		err = rows.Scan(&doc.ID, &doc.Content)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
+		documents = append(documents, doc)
 	}
 
 	if rows.Err() != nil {
 		panic(rows.Err())
 	}
-	return nil
+
+	return documents, nil
 }
 
 type apiRequest struct {
