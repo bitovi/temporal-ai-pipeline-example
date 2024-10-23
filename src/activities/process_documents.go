@@ -197,12 +197,11 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 			}
 
 			if len(pageContent) > 0 {
-				err := saveData(ctx, vectorStoreConn, string(pageContent))
+				err := saveData(ctx, vectorStoreConn, string(pageContent), input.WorkflowID)
 				if err != nil {
 					return ProcessDocumentsOutput{}, fmt.Errorf("error adding document to vector store: %v", err)
 				}
 			}
-
 		}
 	}
 
@@ -305,18 +304,18 @@ func createTable(ctx context.Context, conn *pgx.Conn) {
 		panic(err)
 	}
 
-	_, err = conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS documents (id bigserial PRIMARY KEY, content text, embedding vector(1536))")
+	_, err = conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS documents (id bigserial PRIMARY KEY, workflow_id text, content text, embedding vector(1536))")
 	if err != nil {
 		panic(err)
 	}
 }
 
-func saveData(ctx context.Context, conn *pgx.Conn, input string) error {
-	embeddings, err := FetchEmbeddings([]string{input})
+func saveData(ctx context.Context, conn *pgx.Conn, content string, workflowId string) error {
+	embeddings, err := FetchEmbeddings([]string{content})
 	if err != nil {
 		return err
 	}
-	_, err = conn.Exec(ctx, "INSERT INTO documents (content, embedding) VALUES ($1, $2)", input, pgvector.NewVector(embeddings))
+	_, err = conn.Exec(ctx, "INSERT INTO documents (workflow_id, content, embedding) VALUES ($1, $2, $3)", workflowId, content, pgvector.NewVector(embeddings))
 
 	if err != nil {
 		panic(err)
@@ -330,10 +329,8 @@ type Document struct {
 	Content string
 }
 
-func FetchData(ctx context.Context, conn *pgx.Conn, documentId string) ([]Document, error) {
-	//TODO: Is workflow ID the same as documentId?
-	//TODO: Accept query as string instead of ID
-	rows, err := conn.Query(ctx, "SELECT id, content FROM documents WHERE id != $1 ORDER BY embedding <=> (SELECT embedding FROM documents WHERE id = $1) LIMIT 5", documentId)
+func FetchData(ctx context.Context, conn *pgx.Conn, queryEmbedding []float32, latestDocumentProcessingId string) ([]Document, error) {
+	rows, err := conn.Query(ctx, "SELECT id, content FROM documents WHERE workflow_id =$1  ORDER BY embedding <=> $2 LIMIT 5", latestDocumentProcessingId, pgvector.NewVector(queryEmbedding))
 
 	if err != nil {
 		panic(err)

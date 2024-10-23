@@ -19,7 +19,10 @@ type GetRelatedDocumentsOutput struct {
 
 func GeneratePrompt(ctx context.Context, input GetRelatedDocumentsInput) (GetRelatedDocumentsOutput, error) {
 	conn, _ := GetConn(ctx)
-	data, _ := FetchData(ctx, conn, input.Query)
+
+	queryEmbedding, _ := FetchEmbeddings([]string{input.Query})
+
+	data, _ := FetchData(ctx, conn, queryEmbedding, input.LatestDocumentProcessingId)
 
 	var conversationFilename = "related-documentation.json"
 
