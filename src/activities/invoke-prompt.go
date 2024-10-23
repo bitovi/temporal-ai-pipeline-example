@@ -3,7 +3,6 @@ package activities
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 )
 
@@ -30,7 +29,6 @@ func GeneratePrompt(ctx context.Context, input GetRelatedDocumentsInput) (GetRel
 		"context": data,
 	})
 	if err != nil {
-		fmt.Println("Error marshaling JSON:", err)
 		return GetRelatedDocumentsOutput{}, err
 	}
 

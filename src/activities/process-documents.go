@@ -268,33 +268,32 @@ func getPGVectorStore(ctx context.Context) *pgx.Conn {
 	return conn
 }
 
-// TODO: (IMPORTANT) Share con
 func GetConn(ctx context.Context) (*pgx.Conn, error) {
 	conn, err := pgx.Connect(ctx, DATABASE_CONNECTION_STRING)
 	if err != nil {
-		//TODO: Error handling
-		panic(err)
+		return nil, err
 	}
-	//Todo: see if this line can be cut
-	/*defer conn.Close(ctx) */
+	defer conn.Close(ctx)
 	return conn, nil
 }
 
-func createTable(ctx context.Context, conn *pgx.Conn) {
+func createTable(ctx context.Context, conn *pgx.Conn) error {
 	_, err := conn.Exec(ctx, "CREATE EXTENSION IF NOT EXISTS vector")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = pgxvector.RegisterTypes(ctx, conn)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	_, err = conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS documents (id bigserial PRIMARY KEY, workflow_id text, content text, embedding vector(1536))")
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 func saveData(ctx context.Context, conn *pgx.Conn, content string, workflowId string) error {
@@ -305,7 +304,7 @@ func saveData(ctx context.Context, conn *pgx.Conn, content string, workflowId st
 	_, err = conn.Exec(ctx, "INSERT INTO documents (workflow_id, content, embedding) VALUES ($1, $2, $3)", workflowId, content, pgvector.NewVector(embeddings))
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return nil
@@ -320,7 +319,7 @@ func FetchData(ctx context.Context, conn *pgx.Conn, queryEmbedding []float32, la
 	rows, err := conn.Query(ctx, "SELECT id, content FROM documents WHERE workflow_id =$1  ORDER BY embedding <=> $2 LIMIT 5", latestDocumentProcessingId, pgvector.NewVector(queryEmbedding))
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	defer rows.Close()
