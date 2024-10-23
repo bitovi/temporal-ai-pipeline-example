@@ -189,22 +189,20 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 	for _, file := range fileList {
 		if !file.IsDir() && strings.Contains(file.Name(), ".") {
 
-			//TODO: Remove this condition
-			if file.Name() == "uuid.md" {
-				filePath := filepath.Join(temporaryDirectory, file.Name())
-				pageContent, err := os.ReadFile(filePath)
+			filePath := filepath.Join(temporaryDirectory, file.Name())
+			pageContent, err := os.ReadFile(filePath)
 
+			if err != nil {
+				return ProcessDocumentsOutput{}, fmt.Errorf("error reading file: %v", err)
+			}
+
+			if len(pageContent) > 0 {
+				err := saveData(ctx, vectorStoreConn, string(pageContent))
 				if err != nil {
-					return ProcessDocumentsOutput{}, fmt.Errorf("error reading file: %v", err)
-				}
-
-				if len(pageContent) > 0 {
-					err := saveData(ctx, vectorStoreConn, string(pageContent))
-					if err != nil {
-						return ProcessDocumentsOutput{}, fmt.Errorf("error adding document to vector store: %v", err)
-					}
+					return ProcessDocumentsOutput{}, fmt.Errorf("error adding document to vector store: %v", err)
 				}
 			}
+
 		}
 	}
 
@@ -278,14 +276,14 @@ func Unzip(src, dest string) error {
 }
 
 func getPGVectorStore(ctx context.Context) *pgx.Conn {
-	conn, _ := getConn(ctx)
+	conn, _ := GetConn(ctx)
 	createTable(ctx, conn)
 
 	return conn
 }
 
 // TODO: (IMPORTANT) Share con
-func getConn(ctx context.Context) (*pgx.Conn, error) {
+func GetConn(ctx context.Context) (*pgx.Conn, error) {
 	conn, err := pgx.Connect(ctx, DATABASE_CONNECTION_STRING)
 	if err != nil {
 		//TODO: Error handling
@@ -324,6 +322,33 @@ func saveData(ctx context.Context, conn *pgx.Conn, input string) error {
 		panic(err)
 	}
 
+	return nil
+}
+
+func FetchData(ctx context.Context, conn *pgx.Conn, documentId string) error {
+
+	//TODO: Is workflow ID the same as documentId?
+	//TODO: Accept query as string instead of ID
+	rows, err := conn.Query(ctx, "SELECT id, content FROM documents WHERE id != $1 ORDER BY embedding <=> (SELECT embedding FROM documents WHERE id = $1) LIMIT 5", documentId)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int64
+		var content string
+		err = rows.Scan(&id, &content)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if rows.Err() != nil {
+		panic(rows.Err())
+	}
 	return nil
 }
 

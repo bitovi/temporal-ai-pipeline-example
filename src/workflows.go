@@ -1,9 +1,11 @@
 package workflows
 
 import (
+	"fmt"
 	"temporal-hello-world/src/activities"
 	"time"
 
+	"github.com/google/uuid"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -104,16 +106,32 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 		StartToCloseTimeout: 1 * time.Minute,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	_ = workflow.GetLogger(ctx)
+	logger := workflow.GetLogger(ctx)
 
-	//Create Bucket
-	/* 	createS3BucketInput := activities.CreateS3BucketInput{Bucket: input.ID}
-	   	err := workflow.ExecuteActivity(ctx, activities.CreateS3Bucket, createS3BucketInput).Get(ctx, nil)
-	   	if err != nil {
-	   		logger.Error("Activity failed.", "Error", err)
-	   		return QueryWorkflowOutput{}, err
-	   	}
-	*/
+	conversationID := input.ConversationID
+	latestDocumentProcessingID := input.LatestDocumentProcessingID
+	query := input.Query
+
+	// Generate a new conversation ID if one isn't provided
+	if conversationID == "" {
+		conversationID = fmt.Sprintf("conversation-%s", uuid.New().String())
+		createS3BucketInput := activities.CreateS3BucketInput{Bucket: conversationID}
+		err := workflow.ExecuteActivity(ctx, activities.CreateS3Bucket, createS3BucketInput).Get(ctx, nil)
+		if err != nil {
+			logger.Error("Activity failed.", "Error", err)
+			return QueryWorkflowOutput{}, err
+		}
+	}
+
+	// Generate a new conversation ID if one isn't provided
+	getRelatedDocumentsInput := activities.GetRelatedDocumentsInput{Query: query, LatestDocumentProcessingId: latestDocumentProcessingID, S3Bucket: conversationID}
+	var conversationFilename activities.CollectDocumentsOutput
+	err := workflow.ExecuteActivity(ctx, activities.GeneratePrompt, getRelatedDocumentsInput).Get(ctx, &conversationFilename)
+	if err != nil {
+		logger.Error("Activity failed.", "Error", err)
+		return QueryWorkflowOutput{}, err
+	}
+
 	return QueryWorkflowOutput{
 		ConversationID: "conversationID",
 		Response:       "response",

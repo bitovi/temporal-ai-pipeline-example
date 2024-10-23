@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	workflows "temporal-hello-world/src"
+	"temporal-hello-world/src/activities"
 
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -20,8 +21,9 @@ func main() {
 
 	w := worker.New(c, "invoke-prompt-queue", worker.Options{})
 
-	w.RegisterWorkflow(workflows.InvokePromptWorkflow) /*
-		w.RegisterActivity(activities.CreateS3Bucket)  */
+	w.RegisterWorkflow(workflows.InvokePromptWorkflow)
+	w.RegisterActivity(activities.CreateS3Bucket)
+	w.RegisterActivity(activities.GeneratePrompt)
 
 	err = w.Run(worker.InterruptCh())
 	if err != nil {
