@@ -1,29 +1,26 @@
 import "dotenv/config"; 
 import { Connection, Client } from '@temporalio/client';
+import { invokePromptWorkflow } from './workflows';
 import { nanoid } from 'nanoid';
-import { documentsProcessingWorkflow } from './workflows';
-
 import { getTemporalClientOptions } from './utils';
 
 async function run() {
   const connection = await Connection.connect(getTemporalClientOptions());  
-
   const client = new Client({ 
     connection,
     namespace: process.env.NAMESPACE,
   });
 
-  const id = `process-documents-workflow-${nanoid()}`.toLowerCase().replaceAll('_', '')
-  const handle = await client.workflow.start(documentsProcessingWorkflow, {
-    taskQueue: 'documents-processing-queue',
+  const [ latestDocumentProcessingId, query, conversationId ] = process.argv.slice(2)
+
+  const id = `invoke-prompt-workflow-fail-${nanoid()}`.toLowerCase().replaceAll('_', '')
+  const handle = await client.workflow.start(invokePromptWorkflow, {
+    taskQueue: 'invoke-prompt-queue',
     args: [{
-      id,
-      repository: {
-        url: 'https://github.com/bitovi/hatchify.git',
-        branch: 'main',
-        path: 'docs',
-        fileExtensions: ['md']
-      }
+      query,
+      latestDocumentProcessingId,
+      conversationId,
+      failRate: 0.6
     }],
     workflowId: id
   });

@@ -1,12 +1,14 @@
+import "dotenv/config"; 
 import { Connection, Client } from '@temporalio/client';
 import { testPromptsWorkflow } from './workflows';
 import { nanoid } from 'nanoid';
+import { getTemporalClientOptions } from './utils';
 
 async function run() {
-  const connection = await Connection.connect({ address: 'localhost:7233' });
-
-  const client = new Client({
-    connection
+  const connection = await Connection.connect(getTemporalClientOptions());  
+  const client = new Client({ 
+    connection,
+    namespace: process.env.NAMESPACE,
   });
 
   const [ latestDocumentProcessingId ] = process.argv.slice(2)
