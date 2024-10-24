@@ -28,7 +28,7 @@ export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<G
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      throw new Error('Failed performing similarity search on embedding.')
+      throw new Error("PSQLException: Connection refused.")    
     }
   }
 
