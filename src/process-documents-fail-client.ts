@@ -1,3 +1,4 @@
+import "dotenv/config"; 
 import { Connection, Client } from '@temporalio/client';
 import { documentsProcessingWorkflow } from './workflows';
 import { nanoid } from 'nanoid';
