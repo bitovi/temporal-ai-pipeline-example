@@ -23,13 +23,15 @@ type Repository = {
 type DocumentsProcessingWorkflowInput = {
   id: string
   repository: Repository
-  failRate?: number
+  failRate?: string
 }
 type DocumentsProcessingWorkflowOutput = {
   tableName: string
 }
 export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
-  const { id, repository, failRate } = input
+  const { id, repository } = input
+  let failRate = Number(input.failRate)
+
 
   await createS3Bucket({ bucket: id })
 
@@ -65,14 +67,15 @@ type QueryWorkflowInput = {
   conversationId?: string
   query: string
   latestDocumentProcessingId: string
-  failRate?: number
+  failRate?: string
 }
 type QueryWorkflowOutput = {
   conversationId: string
   response: string
 }
 export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> {
-  const { latestDocumentProcessingId, query, failRate } = input
+  const { latestDocumentProcessingId, query } = input 
+  let failRate = Number(input.failRate)
   let { conversationId } = input
 
   if (!conversationId) {

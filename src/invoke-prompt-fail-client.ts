@@ -9,7 +9,7 @@ async function run() {
     connection
   });
 
-  const [ latestDocumentProcessingId, query, conversationId ] = process.argv.slice(2)
+  const [ latestDocumentProcessingId, query, conversationId, failRate  ] = process.argv.slice(2)
 
   const id = `invoke-prompt-workflow-fail-${nanoid()}`.toLowerCase().replaceAll('_', '')
   const handle = await client.workflow.start(invokePromptWorkflow, {
@@ -18,7 +18,7 @@ async function run() {
       query,
       latestDocumentProcessingId,
       conversationId,
-      failRate: 0.6
+      failRate,
     }],
     workflowId: id
   });
