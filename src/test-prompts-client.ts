@@ -1,6 +1,7 @@
 import { Connection, Client } from '@temporalio/client';
 import { testPromptsWorkflow } from './workflows';
 import { nanoid } from 'nanoid';
+import { getTemporalClientOptions } from './utils';
 
 async function run() {
   const connection = await Connection.connect(getTemporalClientOptions());  
