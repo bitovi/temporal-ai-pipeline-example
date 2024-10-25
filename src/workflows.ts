@@ -3,14 +3,26 @@ import * as activities from './activities'
 
 const { createS3Bucket, deleteS3Object, deleteS3Bucket, generatePrompt, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
+  retry: {
+    backoffCoefficient: 1,
+    initialInterval: '3 seconds'
+  }
 })
 
 const { collectDocuments, validateQueryResult, summarizeValidationResults } = proxyActivities<typeof activities>({
   startToCloseTimeout: '5 minute',
+  retry: {
+    backoffCoefficient: 1,
+    initialInterval: '3 seconds'
+  }
 })
 
 const { processDocuments } = proxyActivities<typeof activities>({
   startToCloseTimeout: '50 minute',
+  retry: {
+    backoffCoefficient: 1,
+    initialInterval: '3 seconds'
+  }
 })
 
 type Repository = {
