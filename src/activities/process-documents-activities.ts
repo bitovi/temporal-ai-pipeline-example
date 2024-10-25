@@ -36,9 +36,9 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     gitRepoBranch,
     gitRepoDirectory,
     fileExtensions,
-  } = input
-
-  const temporaryDirectory = workflowId
+  } = input 
+ 
+  const temporaryDirectory = workflowId 
   if (!fs.existsSync(temporaryDirectory)) {
     fs.mkdirSync(temporaryDirectory, { recursive: true })
   }
@@ -47,7 +47,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   const organization = parts[3]
   const repository = parts[4].split('.git')[0]
   const repoPath = `${organization}/${repository}`
-
+   
   const temporaryGitHubDirectory = `${temporaryDirectory}/${repoPath}`
   fs.rmSync(temporaryGitHubDirectory, { force: true, recursive: true })
 
@@ -55,7 +55,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     `git clone --depth 1 --branch ${gitRepoBranch} https://github.com/${repoPath}.git ${temporaryGitHubDirectory}`
   )
 
-  // @ts-ignore
+  // @ts-ignore   
   const fileList = fs.readdirSync(temporaryGitHubDirectory, { recursive: true })
   const filteredFileList = fileList.filter((fileName: string) => {
     const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1)
@@ -65,7 +65,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   const archive = archiver('zip', {
     zlib: { level: 9 }
   })
-
+  
   const zipFileName = 'files.zip'
   const zipFileLocation = `${temporaryDirectory}/${zipFileName}`
   const zipFile = fs.createWriteStream(zipFileLocation)
@@ -74,7 +74,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   const zipFileReady = new Promise<void>((resolve, reject) => {
     zipFile.on('close', resolve)
   })
-
+  
   filteredFileList.forEach((fileName: string) =>
     archive.file(`${temporaryGitHubDirectory}/${fileName}`, { name: fileName })
   )
@@ -88,7 +88,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     key: zipFileName
   })
 
-  fs.rmSync(temporaryDirectory, { force: true, recursive: true })
+  fs.rmSync(temporaryDirectory, { force: true, recursive: true })  
 
   return {
     zipFileName
@@ -120,15 +120,18 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   await extractZip(zipFileName, { dir: path.resolve(temporaryDirectory) })
   fs.rmSync(zipFileName)
 
-  const pgVectorStore = await getPGVectorStore()
+  const pgVectorStore = await getPGVectorStore() 
+  console.log(`Successfully got bucket PGVectorStore.`); 
 
   // @ts-ignore
   const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })
   const filesOnly = fileList.filter((fileName) => fileName.indexOf('.') >= 0)
 
+
+  console.log(`Saving documents into PGVectorStore.`); 
   for (const fileName of filesOnly) {
     const pageContent = fs.readFileSync(path.join(temporaryDirectory, fileName), { encoding: 'utf-8' })
-    if (pageContent.length > 0) {
+    if (pageContent.length > 0) { 
       await pgVectorStore.addDocuments([{
         pageContent,
         metadata: { fileName, workflowId }
@@ -139,13 +142,14 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   pgVectorStore.end()
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
-
+  
   return {
     tableName: DATABASE_TABLE_NAME
   }
 }
 
-export function getPGVectorStore(): Promise<PGVectorStore> {
+export function getPGVectorStore(): Promise<PGVectorStore> { 
+  console.log(`Getting getPGVectorStore.`); 
   const embeddingsModel = new OpenAIEmbeddings({
     openAIApiKey: OPENAI_API_KEY,
     batchSize: 512,

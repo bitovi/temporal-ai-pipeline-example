@@ -11,14 +11,15 @@ import {
   CreateBucketCommandOutput,
   DeleteBucketCommand,
   DeleteBucketCommandOutput
-} from '@aws-sdk/client-s3'
+} from '@aws-sdk/client-s3' 
 
 const AWS_URL = process.env.AWS_URL
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 
 let _s3Client: S3Client
-function getClient(): S3Client {
+function getClient(): S3Client { 
+  console.log('Getting S3 client.');
   if(!_s3Client) {
     const s3ClientOptions: S3ClientConfig = {
       region: 'us-east-1',
@@ -35,6 +36,7 @@ function getClient(): S3Client {
     _s3Client = new S3Client(s3ClientOptions)
   }
 
+  console.log('Successfully got S3 client.');
   return _s3Client
 }
 
@@ -44,6 +46,9 @@ type CreateS3BucketInput = {
 export async function createS3Bucket(input: CreateS3BucketInput): Promise<CreateBucketCommandOutput> {
   const { bucket } = input
   const s3Client = getClient()
+
+  
+  console.log(`Creating S3 bucket ${bucket}.`);
   return s3Client.send(new CreateBucketCommand({ Bucket: bucket }))
 }
 
@@ -53,6 +58,8 @@ type DeleteS3BucketInput = {
 export async function deleteS3Bucket(input: DeleteS3BucketInput): Promise<DeleteBucketCommandOutput> {
   const { bucket } = input
   const s3Client = getClient()
+
+  console.log(`Getting S3 bucket ${bucket}.`);
   return s3Client.send(new DeleteBucketCommand({ Bucket: bucket }))
 }
 
@@ -63,6 +70,8 @@ type GetS3ObjectInput = {
 export async function getS3Object(input: GetS3ObjectInput): Promise<GetObjectCommandOutput> {
   const { bucket, key } = input
   const s3Client = getClient()
+
+  console.log('Getting S3 object from bucket.');
   return s3Client.send(
     new GetObjectCommand({
       Bucket: bucket,
@@ -79,6 +88,8 @@ type PutS3ObjectInput = {
 export async function putS3Object(input: PutS3ObjectInput): Promise<PutObjectCommandOutput> {
   const { body, bucket, key } = input
   const s3Client = getClient()
+
+  console.log(`Uploading ${key} to S3 bucket.`);
   return s3Client.send(
     new PutObjectCommand({
       Body: body,
@@ -95,6 +106,8 @@ type DeleteS3ObjectInput = {
 export async function deleteS3Object(input: DeleteS3ObjectInput): Promise<DeleteObjectCommandOutput> {
   const { bucket, key } = input
   const s3Client = getClient()
+
+  console.log('Deleting object from S3 bucket.');
   return s3Client.send(
     new DeleteObjectCommand({
       Bucket: bucket,

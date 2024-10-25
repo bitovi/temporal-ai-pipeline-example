@@ -1,4 +1,4 @@
-import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'
+import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'  
 import * as activities from './activities'
 
 const { createS3Bucket, deleteS3Object, deleteS3Bucket, generatePrompt, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
@@ -27,12 +27,17 @@ type DocumentsProcessingWorkflowOutput = {
   tableName: string
 }
 export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
+
+  console.log(`Processing documents from ${input.repository.url}.`);
   const { id, repository } = input
 
-  await createS3Bucket({ bucket: id })
-
+  await createS3Bucket({ bucket: id }) 
+  console.log('Successfully created S3 bucket.');
+ 
   const { url, branch, path, fileExtensions } = repository
 
+
+  console.log(`Collecting documents from ${path}.`); 
   const { zipFileName } = await collectDocuments({
     workflowId: id,
     s3Bucket: id,
@@ -40,13 +45,16 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     gitRepoBranch: branch,
     gitRepoDirectory: path,
     fileExtensions
-  })
+  }) 
+  console.log(`Successfully collected documents from ${path}.`); 
 
+  console.log(`Processing bucket ${id}'s documents.`); 
   const { tableName } = await processDocuments({
     workflowId: id,
     s3Bucket: id,
     zipFileName
-  })
+  }) 
+  console.log(`Successfully processed documents.`); 
 
   await deleteS3Object({ bucket: id, key: zipFileName })
 
