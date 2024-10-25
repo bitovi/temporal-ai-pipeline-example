@@ -1,15 +1,17 @@
+import "dotenv/config"; 
 import { Connection, Client } from '@temporalio/client';
-import { invokePromptWorkflow } from './workflows';
 import { nanoid } from 'nanoid';
+import { invokePromptWorkflow } from './workflows';
+import { getTemporalClientOptions } from './utils';
 
-async function run() {
-  const connection = await Connection.connect({ address: 'localhost:7233' });
-
-  const client = new Client({
-    connection
+async function run() {   
+  const connection = await Connection.connect(getTemporalClientOptions());  
+  const client = new Client({ 
+    connection,
+    namespace: process.env.NAMESPACE,
   });
 
-  const [ latestDocumentProcessingId, query, failRate ] = process.argv.slice(2)
+  const [ failRate, latestDocumentProcessingId, query  ] = process.argv.slice(2)
   
   const id = `invoke-prompt-workflow-${nanoid()}`.toLowerCase().replaceAll('_', '')
   const handle = await client.workflow.start(invokePromptWorkflow, {

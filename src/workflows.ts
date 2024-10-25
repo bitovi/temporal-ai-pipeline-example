@@ -1,17 +1,16 @@
 import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'
-import * as activities from './activities'
-import { error } from 'console'
+import * as activities from './activities' 
 
 const { createS3Bucket, deleteS3Object, deleteS3Bucket, generatePrompt, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
 })
 
 const { collectDocuments, validateQueryResult, summarizeValidationResults } = proxyActivities<typeof activities>({
-  startToCloseTimeout: '5 minute',
+  startToCloseTimeout: '5 minute', 
 })
 
 const { processDocuments } = proxyActivities<typeof activities>({
-  startToCloseTimeout: '50 minute',
+  startToCloseTimeout: '50 minute', 
 })
 
 type Repository = {

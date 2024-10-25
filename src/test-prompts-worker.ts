@@ -1,16 +1,14 @@
 import { NativeConnection, Worker } from '@temporalio/worker';
 import * as activities from './activities';
-
-const TEMPORAL_ADDRESS = process.env.TEMPORAL_ADDRESS
+import { getTemporalClientOptions } from './utils';
 
 async function run() {
-  const connection = await NativeConnection.connect({
-    address: TEMPORAL_ADDRESS
-  });
+  const temporalClientOptions = getTemporalClientOptions();  
+  const connection = await NativeConnection.connect(temporalClientOptions); 
 
   const worker = await Worker.create({
     connection,
-    namespace: 'default',
+    namespace: process.env.NAMESPACE,
     taskQueue: 'prompt-testing-queue',
     workflowsPath: require.resolve('./workflows'),
     activities
