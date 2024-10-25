@@ -1,4 +1,4 @@
-import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'  
+import { proxyActivities, startChild, uuid4, workflowInfo } from '@temporalio/workflow'  
 import * as activities from './activities'
 
 const { createS3Bucket, deleteS3Object, deleteS3Bucket, generatePrompt, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
@@ -78,7 +78,7 @@ type QueryWorkflowOutput = {
   conversationId: string
   response: string
 }
-export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> { 
+export async function invokePromptWorkflow( input: QueryWorkflowInput): Promise<QueryWorkflowOutput> { 
   console.log(`Invoking prompt with query: ${input.query}.`);
 
   const { latestDocumentProcessingId, query } = input
@@ -99,10 +99,9 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
     query,
     s3Bucket: conversationId,
     conversationFilename
-  })
-
-
-
+  }) 
+ 
+  console.log(`Finished workflow ${ workflowInfo().workflowId}. Resulting conversationId: ${conversationId}, resulting response: "\n" ${response}`);
   return { conversationId, response }
 }
 
