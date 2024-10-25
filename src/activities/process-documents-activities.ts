@@ -76,8 +76,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     zipFile.on('close', resolve)
   })
   
-
-  console.log(`Adding files with extensions ${input.fileExtensions.flat()} to ${zipFileName}.`); 
+ 
   filteredFileList.forEach((fileName: string) =>
     archive.file(`${temporaryGitHubDirectory}/${fileName}`, { name: fileName })
   )
@@ -90,6 +89,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     bucket: s3Bucket,
     key: zipFileName
   })
+  console.log("Uploaded S3 object.")
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })  
 
@@ -117,21 +117,21 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   const response = await getS3Object({
     bucket: s3Bucket,
     key: zipFileName
-  })
+  }) 
+  console.log("Got S3 object.")
 
   fs.writeFileSync(zipFileName, await response?.Body?.transformToByteArray() || new Uint8Array())
   await extractZip(zipFileName, { dir: path.resolve(temporaryDirectory) })
   fs.rmSync(zipFileName)
 
-  const pgVectorStore = await getPGVectorStore() 
-  console.log(`Got bucket PGVectorStore.`); 
+  const pgVectorStore = await getPGVectorStore()
+  console.log("Got PGVectorStore.")
 
   // @ts-ignore
   const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })
   const filesOnly = fileList.filter((fileName) => fileName.indexOf('.') >= 0)
 
-
-  console.log(`Saving documents into PGVectorStore.`); 
+ 
   for (const fileName of filesOnly) {
     const pageContent = fs.readFileSync(path.join(temporaryDirectory, fileName), { encoding: 'utf-8' })
     if (pageContent.length > 0) { 
@@ -151,8 +151,7 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   }
 }
 
-export function getPGVectorStore(): Promise<PGVectorStore> { 
-  console.log(`Getting getPGVectorStore.`); 
+export function getPGVectorStore(): Promise<PGVectorStore> {  
   const embeddingsModel = new OpenAIEmbeddings({
     openAIApiKey: OPENAI_API_KEY,
     batchSize: 512,

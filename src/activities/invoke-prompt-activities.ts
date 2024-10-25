@@ -14,12 +14,11 @@ type GetRelatedDocumentsInput = {
 type GetRelatedDocumentsOutput = {
   conversationFilename: string
 }
-export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<GetRelatedDocumentsOutput> { 
-  console.log(`Generating prompt for query: ${input.query}.`);
+export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<GetRelatedDocumentsOutput> {  
   const { query, latestDocumentProcessingId, s3Bucket } = input
 
-  const pgVectorStore = await getPGVectorStore() 
-  console.log(`Performing similarity search for query ${input.query}.`);
+  const pgVectorStore = await getPGVectorStore()
+  console.log("Got PGVectorStore.")
   const results = await pgVectorStore.similaritySearch(query, 5, {
     workflowId: latestDocumentProcessingId
   });
@@ -31,7 +30,8 @@ export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<G
     body: Buffer.from(JSON.stringify({
       context: results
     }))
-  })
+  }) 
+  console.log("Uploaded S3 object.")
 
   return {
     conversationFilename
@@ -52,7 +52,8 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
   const conversationResponse = await getS3Object({
     bucket: s3Bucket,
     key: conversationFilename
-  })
+  }) 
+  console.log("Got S3 object.")
   const conversationContext = await conversationResponse.Body?.transformToString()
 
   let relevantDocumentation: string[] = []
@@ -61,11 +62,7 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
     relevantDocumentation = documentation.context.map(({ pageContent }) => pageContent)
   }
 
-  const gptModel = getGPTModel() 
-  console.log(`Success on getting OpenAI model.`);
-
-
-  console.log(`Feeding relevant information to chat model.`);
+  const gptModel = getGPTModel()     
   const response = await gptModel.invoke([
     [ 'system', 'You are a friendly, helpful software assistant. Your goal is to help users write CRUD-based software applications using the the Hatchify open-source project in TypeScript.' ],
     [ 'system', 'You should respond in short paragraphs, using Markdown formatting, separated with two newlines to keep your responses easily readable.' ],
