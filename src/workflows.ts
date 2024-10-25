@@ -109,7 +109,7 @@ export async function invokePromptWorkflow( input: QueryWorkflowInput): Promise<
   })  
   console.log("Invoked prompt.")
  
-  console.log(`Finished workflow ${ workflowInfo().workflowId}. Resulting conversationId: ${conversationId}, resulting response: "\n" ${response}`);
+  console.log(`Finished workflow ${ workflowInfo().workflowId}. Resulting conversationId: ${conversationId}, resulting response: \n ${response}`);
   return { conversationId, response }
 }
 
