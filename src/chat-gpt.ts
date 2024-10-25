@@ -12,6 +12,7 @@ export function createMemoizedOpenAI(modelName: string = 'gpt-3.5-turbo') {
         modelName,
       })
     }
+    console.log(`Got OpenAI model.`); 
     return _gptModel
   }
 }

@@ -31,7 +31,7 @@ async function run() {
     workflowId: id
   });
 
-  console.log(`Workflow ${handle.workflowId} running`);
+  console.log(`Documents Processing Workflow with id: ${handle.workflowId} is running`);
 
   console.log(await handle.result());
 }

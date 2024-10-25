@@ -21,6 +21,7 @@ export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<G
   const { query, latestDocumentProcessingId, s3Bucket, failRate } = input
 
   const pgVectorStore = await getPGVectorStore()
+  console.log("Got PGVectorStore.")
   const results = await pgVectorStore.similaritySearch(query, 5, {
     workflowId: latestDocumentProcessingId
   });
@@ -28,7 +29,9 @@ export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<G
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      throw new Error("PSQLException: Connection refused.")    
+     const error =  new Error("PSQLException: Connection refused.")     
+     console.log(error);
+     throw error
     }
   }
 
@@ -39,7 +42,8 @@ export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<G
     body: Buffer.from(JSON.stringify({
       context: results
     }))
-  })
+  }) 
+  console.log("Uploaded S3 object.")
 
   return {
     conversationFilename
@@ -61,7 +65,8 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
   const conversationResponse = await getS3Object({
     bucket: s3Bucket,
     key: conversationFilename
-  })
+  }) 
+  console.log("Got S3 object.")
   const conversationContext = await conversationResponse.Body?.transformToString()
 
   let relevantDocumentation: string[] = []
@@ -73,7 +78,9 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      throw new Error('Rate limit reached on Open AI key.')
+      const error =  new Error('Rate limit reached on Open AI key.')     
+      console.log(error);
+      throw error 
     }
   }
   const response = await gptModel.invoke([

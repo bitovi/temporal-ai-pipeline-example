@@ -1,16 +1,28 @@
-import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'
+import { proxyActivities, startChild, uuid4, workflowInfo } from '@temporalio/workflow'
 import * as activities from './activities' 
 
 const { createS3Bucket, deleteS3Object, deleteS3Bucket, generatePrompt, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
+  retry: {
+    backoffCoefficient: 1,
+    initialInterval: '3 seconds'
+  }
 })
 
 const { collectDocuments, validateQueryResult, summarizeValidationResults } = proxyActivities<typeof activities>({
-  startToCloseTimeout: '5 minute', 
+  startToCloseTimeout: '5 minute',
+  retry: {
+    backoffCoefficient: 1,
+    initialInterval: '3 seconds'
+  }
 })
 
 const { processDocuments } = proxyActivities<typeof activities>({
-  startToCloseTimeout: '50 minute', 
+  startToCloseTimeout: '50 minute',
+  retry: {
+    backoffCoefficient: 1,
+    initialInterval: '3 seconds'
+  }
 })
 
 type Repository = {
@@ -34,6 +46,7 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     bucket: id,
     failRate
   })
+  console.log(`Created S3 bucket.`);
 
   const { url, branch, path, fileExtensions } = repository
 
@@ -46,6 +59,7 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     fileExtensions,
     failRate
   })
+  console.log(`Collected documents.`); 
 
   const { tableName } = await processDocuments({
     workflowId: id,
@@ -53,11 +67,15 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     zipFileName,
     failRate
   })
+  console.log(`Processed documents.`);  
 
   await deleteS3Object({ bucket: id, key: zipFileName })
-
+  console.log(`Deleted S3 objects.`);
+ 
   await deleteS3Bucket({ bucket: id })
+  console.log(`Deleted S3 bucket.`);
 
+  console.log(`Finished workflow: ${input.id}, result: ${tableName}`);
   return {
     tableName
   }
@@ -80,6 +98,7 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
     bucket: conversationId,
     failRate
   })
+  console.log("Created S3 bucket.")
 
   const { conversationFilename } = await generatePrompt({
     query,
@@ -87,6 +106,7 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
     s3Bucket: conversationId,
     failRate
   })
+  console.log("Generated prompt.")
 
   const { response } = await invokePrompt({
     query,
@@ -94,7 +114,9 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
     conversationFilename,
     failRate
   })
+  console.log("Invoked prompt.")
 
+  console.log(`Finished workflow ${ workflowInfo().workflowId}. Resulting conversationId: ${conversationId}, resulting response: \n ${response}`);
   return { conversationId, response }
 }
 
@@ -115,7 +137,8 @@ type TestPromptsWorkflowOutput = {
 export async function testPromptsWorkflow(input: TestPromptsWorkflowInput): Promise<TestPromptsWorkflowOutput> {
   const testCases = await loadTestCases({
     testName: input.testName
-  })
+  }) 
+  console.log("Loaded test cases.") 
   const queries = Object.keys(testCases)
 
 
@@ -148,8 +171,10 @@ export async function testPromptsWorkflow(input: TestPromptsWorkflowInput): Prom
   const validationResults = await Promise.all(
     childWorkflowResponses.map(async (input) => validateQueryResult(input))
   )
+  console.log("Validated query results.")
 
   const { summary, averageScore } = await summarizeValidationResults({ validationResults })
+  console.log("Summarized validation results.")
 
   return {
     validationResults,
