@@ -23,17 +23,18 @@ type Repository = {
 type DocumentsProcessingWorkflowInput = {
   id: string
   repository: Repository
-  failRate?: string
+  failRate: number
 }
 type DocumentsProcessingWorkflowOutput = {
   tableName: string
 }
 export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
-  const { id, repository } = input
-  let failRate = Number(input.failRate)
+  const { id, repository, failRate } = input
 
-
-  await createS3Bucket({ bucket: id })
+  await createS3Bucket({
+    bucket: id,
+    failRate
+  })
 
   const { url, branch, path, fileExtensions } = repository
 
@@ -64,24 +65,22 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
 }
 
 type QueryWorkflowInput = {
-  conversationId?: string
   query: string
   latestDocumentProcessingId: string
-  failRate?: string
+  failRate: number
 }
 type QueryWorkflowOutput = {
   conversationId: string
   response: string
 }
 export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> {
-  const { latestDocumentProcessingId, query } = input 
-  let failRate = Number(input.failRate)
-  let { conversationId } = input
+  const { query, latestDocumentProcessingId, failRate } = input
+  const conversationId = `conversation-${uuid4()}`
 
-  if (!conversationId) {
-    conversationId = `conversation-${uuid4()}`
-    await createS3Bucket({ bucket: conversationId })
-  }
+  await createS3Bucket({
+    bucket: conversationId,
+    failRate
+  })
 
   const { conversationFilename } = await generatePrompt({
     query,
@@ -119,7 +118,7 @@ export async function testPromptsWorkflow(input: TestPromptsWorkflowInput): Prom
     testName: input.testName
   })
   const queries = Object.keys(testCases)
-  
+
 
   const childWorkflowHandles = await Promise.all(
     queries.map((query) => {

@@ -9,6 +9,8 @@ async function run() {
     connection
   });
 
+  const [ failRate ] = process.argv.slice(2)
+
   const id = `process-documents-workflow-${nanoid()}`.toLowerCase().replaceAll('_', '')
   const handle = await client.workflow.start(documentsProcessingWorkflow, {
     taskQueue: 'documents-processing-queue',
@@ -19,7 +21,8 @@ async function run() {
         branch: 'main',
         path: 'docs',
         fileExtensions: ['md']
-      }
+      },
+      failRate: Number(failRate ?? 0)
     }],
     workflowId: id
   });
