@@ -11,7 +11,7 @@ import {
   CreateBucketCommandOutput,
   DeleteBucketCommand,
   DeleteBucketCommandOutput
-} from '@aws-sdk/client-s3' 
+} from '@aws-sdk/client-s3'
 
 const AWS_URL = process.env.AWS_URL
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
@@ -63,8 +63,8 @@ type DeleteS3BucketInput = {
 }
 export async function deleteS3Bucket(input: DeleteS3BucketInput): Promise<DeleteBucketCommandOutput> {
   const { bucket } = input
-  const s3Client = getClient()
- 
+  const s3Client = getClient() 
+  
   return s3Client.send(new DeleteBucketCommand({ Bucket: bucket }))
 }
 

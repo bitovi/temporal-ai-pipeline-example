@@ -68,7 +68,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   const archive = archiver('zip', {
     zlib: { level: 9 }
   })
-  
+
   const zipFileName = 'files.zip'
   const zipFileLocation = `${temporaryDirectory}/${zipFileName}`
   const zipFile = fs.createWriteStream(zipFileLocation)
@@ -100,7 +100,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   })
   console.log("Uploaded S3 object.")
 
-  fs.rmSync(temporaryDirectory, { force: true, recursive: true })  
+  fs.rmSync(temporaryDirectory, { force: true, recursive: true })
 
   return {
     zipFileName
@@ -146,11 +146,10 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   // @ts-ignore
   const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })
   const filesOnly = fileList.filter((fileName) => fileName.indexOf('.') >= 0)
-
  
   for (const fileName of filesOnly) {
     const pageContent = fs.readFileSync(path.join(temporaryDirectory, fileName), { encoding: 'utf-8' })
-    if (pageContent.length > 0) { 
+    if (pageContent.length > 0) {
       await pgVectorStore.addDocuments([{
         pageContent,
         metadata: { fileName, workflowId }
@@ -161,13 +160,13 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   pgVectorStore.end()
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
-  
+
   return {
     tableName: DATABASE_TABLE_NAME
   }
 }
 
-export function getPGVectorStore(): Promise<PGVectorStore> {  
+export function getPGVectorStore(): Promise<PGVectorStore> {
   const embeddingsModel = new OpenAIEmbeddings({
     openAIApiKey: OPENAI_API_KEY,
     batchSize: 512,
