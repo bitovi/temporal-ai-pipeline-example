@@ -26,8 +26,7 @@ type DocumentsProcessingWorkflowInput = {
 type DocumentsProcessingWorkflowOutput = {
   tableName: string
 }
-export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> {
-
+export async function documentsProcessingWorkflow(input: DocumentsProcessingWorkflowInput): Promise<DocumentsProcessingWorkflowOutput> { 
   console.log(`Processing documents from ${input.repository.url}.`);
   const { id, repository } = input
 
@@ -74,7 +73,9 @@ type QueryWorkflowOutput = {
   conversationId: string
   response: string
 }
-export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> {
+export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> { 
+  console.log(`Invoking prompt with query: ${input.query}.`);
+
   const { latestDocumentProcessingId, query } = input
   let { conversationId } = input
 
@@ -94,6 +95,8 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
     s3Bucket: conversationId,
     conversationFilename
   })
+
+  
 
   return { conversationId, response }
 }
