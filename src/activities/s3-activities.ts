@@ -50,7 +50,9 @@ export async function createS3Bucket(input: CreateS3BucketInput): Promise<Create
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      throw new Error("NoSuchBucket: The specified bucket does not exist")
+      const error =  new Error("NoSuchBucket: The specified bucket does not exist")     
+      console.log(error);
+      throw error  
     }
   }
 

@@ -29,7 +29,9 @@ export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<G
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      throw new Error("PSQLException: Connection refused.")    
+     const error =  new Error("PSQLException: Connection refused.")     
+     console.log(error);
+     throw error
     }
   }
 
@@ -76,7 +78,9 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      throw new Error('Rate limit reached on Open AI key.')
+      const error =  new Error('Rate limit reached on Open AI key.')     
+      console.log(error);
+      throw error 
     }
   }
   const response = await gptModel.invoke([

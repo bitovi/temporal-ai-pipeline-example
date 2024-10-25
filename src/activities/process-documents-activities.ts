@@ -89,7 +89,9 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      throw new Error('Unable to put zipped files into S3.')
+      const error =  new Error('Unable to put zipped files into S3.')     
+      console.log(error);
+      throw error  
     }
   }
 
@@ -136,8 +138,10 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
 
   if (failRate !== undefined) {
     const randomErr = Math.random()
-    if (randomErr < failRate) {
-      throw new Error('Unable to initialize embeddings model')
+    if (randomErr < failRate) { 
+      const error =  new Error('Unable to initialize embeddings model')     
+      console.log(error);
+      throw error  
     }
   }
   const pgVectorStore = await getPGVectorStore()
