@@ -2,9 +2,7 @@ import { ChatOpenAI } from "@langchain/openai"
 
 const { OPENAI_API_KEY } = process.env
 
-export function createMemoizedOpenAI(modelName: string = 'gpt-3.5-turbo') {
-
-  console.log(`Getting OpenAI model.`);
+export function createMemoizedOpenAI(modelName: string = 'gpt-3.5-turbo') { 
   let _gptModel: ChatOpenAI
   return () => {
     if (!_gptModel) {
@@ -14,6 +12,7 @@ export function createMemoizedOpenAI(modelName: string = 'gpt-3.5-turbo') {
         modelName,
       })
     }
+    console.log(`Got OpenAI model.`); 
     return _gptModel
   }
 }
