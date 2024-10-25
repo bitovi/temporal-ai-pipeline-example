@@ -61,8 +61,8 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
     relevantDocumentation = documentation.context.map(({ pageContent }) => pageContent)
   }
 
-  const gptModel = getGPTModel()
-  console.log(`Successfully got OpenAI model.`);
+  const gptModel = getGPTModel() 
+  console.log(`Success on getting OpenAI model.`);
 
 
   console.log(`Feeding relevant information to chat model.`);

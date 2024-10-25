@@ -31,7 +31,7 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
   const { id, repository } = input
 
   await createS3Bucket({ bucket: id }) 
-  console.log('Successfully created S3 bucket.');
+  console.log(`Created S3 bucket with name ${id}.`);
  
   const { url, branch, path, fileExtensions } = repository
 
@@ -45,7 +45,7 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     gitRepoDirectory: path,
     fileExtensions
   }) 
-  console.log(`Successfully collected documents from ${path}.`); 
+  console.log(`Collected documents from ${path}.`); 
 
   console.log(`Processing bucket ${id}'s documents.`); 
   const { tableName } = await processDocuments({
@@ -53,12 +53,17 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
     s3Bucket: id,
     zipFileName
   }) 
-  console.log(`Successfully processed documents.`); 
+  console.log(`Finished processing documents.`); 
 
-  await deleteS3Object({ bucket: id, key: zipFileName })
+  console.log(`Cleaning up`);
+  await deleteS3Object({ bucket: id, key: zipFileName }) 
+  console.log(`Deleted S3 bucket ${id} object ${zipFileName}.`);
 
-  await deleteS3Bucket({ bucket: id })
+  await deleteS3Bucket({ bucket: id }) 
+  console.log(`Deleted S3 bucket ${id}.`);
 
+
+  console.log(`Finished workflow: ${input.id}, result: ${tableName}`);
   return {
     tableName
   }
@@ -96,7 +101,7 @@ export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<Q
     conversationFilename
   })
 
-  
+
 
   return { conversationId, response }
 }

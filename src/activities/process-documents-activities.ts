@@ -55,6 +55,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     `git clone --depth 1 --branch ${gitRepoBranch} https://github.com/${repoPath}.git ${temporaryGitHubDirectory}`
   )
 
+
   // @ts-ignore   
   const fileList = fs.readdirSync(temporaryGitHubDirectory, { recursive: true })
   const filteredFileList = fileList.filter((fileName: string) => {
@@ -75,6 +76,8 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     zipFile.on('close', resolve)
   })
   
+
+  console.log(`Adding files with extensions ${input.fileExtensions.flat()} to ${zipFileName}.`); 
   filteredFileList.forEach((fileName: string) =>
     archive.file(`${temporaryGitHubDirectory}/${fileName}`, { name: fileName })
   )
@@ -121,7 +124,7 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   fs.rmSync(zipFileName)
 
   const pgVectorStore = await getPGVectorStore() 
-  console.log(`Successfully got bucket PGVectorStore.`); 
+  console.log(`Got bucket PGVectorStore.`); 
 
   // @ts-ignore
   const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })

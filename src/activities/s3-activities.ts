@@ -36,7 +36,7 @@ function getClient(): S3Client {
     _s3Client = new S3Client(s3ClientOptions)
   }
 
-  console.log('Successfully got S3 client.');
+  console.log('Success on getting S3 client.');
   return _s3Client
 }
 
@@ -71,7 +71,7 @@ export async function getS3Object(input: GetS3ObjectInput): Promise<GetObjectCom
   const { bucket, key } = input
   const s3Client = getClient()
 
-  console.log('Getting S3 object from bucket.');
+  console.log(`Getting S3 object ${input.key} from bucket ${input.bucket}`);
   return s3Client.send(
     new GetObjectCommand({
       Bucket: bucket,
