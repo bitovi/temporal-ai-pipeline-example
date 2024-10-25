@@ -24,6 +24,7 @@ type CollectDocumentsInput = {
   gitRepoBranch: string
   gitRepoDirectory: string
   fileExtensions: string[]
+  failRate?: number
 }
 type CollectDocumentsOutput = {
   zipFileName: string
@@ -36,9 +37,10 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     gitRepoBranch,
     gitRepoDirectory,
     fileExtensions,
-  } = input 
- 
-  const temporaryDirectory = workflowId 
+    failRate
+  } = input
+
+  const temporaryDirectory = workflowId
   if (!fs.existsSync(temporaryDirectory)) {
     fs.mkdirSync(temporaryDirectory, { recursive: true })
   }
@@ -84,6 +86,13 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   archive.finalize()
   await zipFileReady
 
+  if (failRate) {
+    const randomErr = Math.random()
+    if (randomErr < failRate) {
+      throw new Error('Unable to put zipped files into S3.')
+    }
+  }
+
   await putS3Object({
     body: Buffer.from(fs.readFileSync(zipFileLocation)),
     bucket: s3Bucket,
@@ -102,12 +111,13 @@ type ProcessDocumentsInput = {
   workflowId: string
   s3Bucket: string
   zipFileName: string
+  failRate?: number
 }
 type ProcessDocumentsOutput = {
     tableName: string
 }
 export async function processDocuments(input: ProcessDocumentsInput): Promise<ProcessDocumentsOutput> {
-  const { workflowId, s3Bucket, zipFileName } = input
+  const { workflowId, s3Bucket, zipFileName, failRate } = input
 
   const temporaryDirectory = workflowId
   if (!fs.existsSync(temporaryDirectory)) {
@@ -124,6 +134,12 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   await extractZip(zipFileName, { dir: path.resolve(temporaryDirectory) })
   fs.rmSync(zipFileName)
 
+  if (failRate !== undefined) {
+    const randomErr = Math.random()
+    if (randomErr < failRate) {
+      throw new Error('Unable to initialize embeddings model')
+    }
+  }
   const pgVectorStore = await getPGVectorStore()
   console.log("Got PGVectorStore.")
 

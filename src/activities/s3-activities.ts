@@ -41,12 +41,20 @@ function getClient(): S3Client {
 }
 
 type CreateS3BucketInput = {
-  bucket: string
+  bucket: string,
+  failRate: number
 }
 export async function createS3Bucket(input: CreateS3BucketInput): Promise<CreateBucketCommandOutput> {
-  const { bucket } = input
-  const s3Client = getClient() 
-   
+  const { bucket, failRate } = input
+
+  if (failRate) {
+    const randomErr = Math.random()
+    if (randomErr < failRate) {
+      throw new Error("NoSuchBucket: The specified bucket does not exist")
+    }
+  }
+
+  const s3Client = getClient()
   return s3Client.send(new CreateBucketCommand({ Bucket: bucket }))
 }
 

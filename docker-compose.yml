@@ -18,7 +18,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8233/ || exit 1"]
       interval: 10s
-      timeout: 30s
+      timeout: 90s
       retries: 3
 
   postgres:
@@ -69,6 +69,10 @@ services:
       - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
       - DATABASE_TABLE_NAME=vector_db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TEMPORAL_HOST_URL=${TEMPORAL_HOST_URL}
+      - TEMPORAL_CERT=${TEMPORAL_CERT}
+      - TEMPORAL_CERT_KEY=${TEMPORAL_CERT_KEY}
+      - NAMESPACE=${NAMESPACE}
     volumes:
       - ./src:/usr/src/app/src
     command: >
@@ -98,6 +102,10 @@ services:
       - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
       - DATABASE_TABLE_NAME=vector_db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TEMPORAL_HOST_URL=${TEMPORAL_HOST_URL}
+      - TEMPORAL_CERT=${TEMPORAL_CERT}
+      - TEMPORAL_CERT_KEY=${TEMPORAL_CERT_KEY}
+      - NAMESPACE=${NAMESPACE}
     volumes:
       - ./src:/usr/src/app/src
     command: >
@@ -127,6 +135,10 @@ services:
       - DATABASE_CONNECTION_STRING=postgres://dbuser:dbpassword@postgres:5432/vector_db
       - DATABASE_TABLE_NAME=vector_db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TEMPORAL_HOST_URL=${TEMPORAL_HOST_URL}
+      - TEMPORAL_CERT=${TEMPORAL_CERT}
+      - TEMPORAL_CERT_KEY=${TEMPORAL_CERT_KEY}
+      - NAMESPACE=${NAMESPACE}
     volumes:
       - ./src:/usr/src/app/src
       - ./test:/usr/src/app/test
