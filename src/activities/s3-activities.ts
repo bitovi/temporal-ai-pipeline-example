@@ -35,8 +35,6 @@ function getClient(): S3Client {
     _s3Client = new S3Client(s3ClientOptions)
   }
 
-  console.log("Connected to S3")
- 
   return _s3Client
 }
 
@@ -50,8 +48,7 @@ export async function createS3Bucket(input: CreateS3BucketInput): Promise<Create
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      const error =  new Error("NoSuchBucket: The specified bucket does not exist")     
-      console.log(error);
+      const error =  new Error("Failed to create S3 Bucket - AWS is Totally Down")
       throw error  
     }
   }

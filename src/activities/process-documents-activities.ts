@@ -49,7 +49,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   const organization = parts[3]
   const repository = parts[4].split('.git')[0]
   const repoPath = `${organization}/${repository}`
-   
+
   const temporaryGitHubDirectory = `${temporaryDirectory}/${repoPath}`
   fs.rmSync(temporaryGitHubDirectory, { force: true, recursive: true })
 
@@ -57,8 +57,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     `git clone --depth 1 --branch ${gitRepoBranch} https://github.com/${repoPath}.git ${temporaryGitHubDirectory}`
   )
 
-
-  // @ts-ignore   
+  // @ts-ignore
   const fileList = fs.readdirSync(temporaryGitHubDirectory, { recursive: true })
   const filteredFileList = fileList.filter((fileName: string) => {
     const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1)
@@ -77,8 +76,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   const zipFileReady = new Promise<void>((resolve, reject) => {
     zipFile.on('close', resolve)
   })
-  
- 
+
   filteredFileList.forEach((fileName: string) =>
     archive.file(`${temporaryGitHubDirectory}/${fileName}`, { name: fileName })
   )
@@ -89,9 +87,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      const error =  new Error('Unable to put zipped files into S3.')     
-      console.log(error);
-      throw error  
+      throw new Error('Upload to S3 Failed - AWS is totally down')
     }
   }
 
@@ -100,7 +96,6 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     bucket: s3Bucket,
     key: zipFileName
   })
-  console.log("Uploaded S3 object.")
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
 
@@ -129,8 +124,7 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   const response = await getS3Object({
     bucket: s3Bucket,
     key: zipFileName
-  }) 
-  console.log("Got S3 object.")
+  })
 
   fs.writeFileSync(zipFileName, await response?.Body?.transformToByteArray() || new Uint8Array())
   await extractZip(zipFileName, { dir: path.resolve(temporaryDirectory) })
@@ -138,19 +132,16 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
 
   if (failRate !== undefined) {
     const randomErr = Math.random()
-    if (randomErr < failRate) { 
-      const error =  new Error('Unable to initialize embeddings model')     
-      console.log(error);
-      throw error  
+    if (randomErr < failRate) {
+      throw new Error('Failed to initialize Embeddings model - Exceeded OpenAI Rate Limit')
     }
   }
   const pgVectorStore = await getPGVectorStore()
-  console.log("Got PGVectorStore.")
 
   // @ts-ignore
   const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })
   const filesOnly = fileList.filter((fileName) => fileName.indexOf('.') >= 0)
- 
+
   for (const fileName of filesOnly) {
     const pageContent = fs.readFileSync(path.join(temporaryDirectory, fileName), { encoding: 'utf-8' })
     if (pageContent.length > 0) {
