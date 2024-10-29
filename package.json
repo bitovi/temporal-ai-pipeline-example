@@ -6,9 +6,7 @@
     "build": "tsc --build",
     "start": "ts-node src/process-documents-worker.ts && ts-node src/invoke-prompt-worker.ts",
     "process-documents": "ts-node src/process-documents-client.ts",
-    "process-documents-fail": "ts-node src/process-documents-client.ts 0.6",
-    "invoke-prompt": "ts-node src/invoke-prompt-client.ts 0.0",
-    "invoke-prompt-fail": "ts-node src/invoke-prompt-client.ts 0.6",
+    "invoke-prompt": "ts-node src/invoke-prompt-client.ts",
     "test-prompts": "ts-node src/test-prompts-client.ts"
   },
   "dependencies": {

@@ -14,14 +14,13 @@ type GetRelatedDocumentsInput = {
 }
 
 type GetRelatedDocumentsOutput = {
-  conversationFilename: string
+  relatedDocumentsContentFileName: string
 }
 
-export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<GetRelatedDocumentsOutput> {
+export async function getRelatedDocuments(input: GetRelatedDocumentsInput): Promise<GetRelatedDocumentsOutput> {
   const { query, latestDocumentProcessingId, s3Bucket, failRate } = input
 
   const pgVectorStore = await getPGVectorStore()
-  console.log("Got PGVectorStore.")
   const results = await pgVectorStore.similaritySearch(query, 5, {
     workflowId: latestDocumentProcessingId
   });
@@ -29,44 +28,40 @@ export async function generatePrompt(input: GetRelatedDocumentsInput): Promise<G
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-     const error =  new Error("PSQLException: Connection refused.")     
-     console.log(error);
-     throw error
+     throw new Error("Failed to Read Embeddings Data: PSQL Connection refused.")
     }
   }
 
-  const conversationFilename = 'related-documentation.json'
+  const relatedDocumentsContentFileName = 'related-documentation.json'
   putS3Object({
     bucket: s3Bucket,
-    key: conversationFilename,
+    key: relatedDocumentsContentFileName,
     body: Buffer.from(JSON.stringify({
       context: results
     }))
-  }) 
-  console.log("Uploaded S3 object.")
+  })
 
   return {
-    conversationFilename
+    relatedDocumentsContentFileName: relatedDocumentsContentFileName
   }
 }
 
 type InvokePromptInput = {
   query: string
   s3Bucket: string
-  conversationFilename: string
+  relatedDocumentsContentFileName: string
   failRate?: number
 }
 type InvokePromptOutput = {
   response: string
 }
 export async function invokePrompt(input: InvokePromptInput): Promise<InvokePromptOutput> {
-  const { query, s3Bucket, conversationFilename, failRate } = input
+  const { query, s3Bucket, relatedDocumentsContentFileName , failRate } = input
 
   const conversationResponse = await getS3Object({
     bucket: s3Bucket,
-    key: conversationFilename
-  }) 
-  console.log("Got S3 object.")
+    key: relatedDocumentsContentFileName
+  })
   const conversationContext = await conversationResponse.Body?.transformToString()
 
   let relevantDocumentation: string[] = []
@@ -78,9 +73,7 @@ export async function invokePrompt(input: InvokePromptInput): Promise<InvokeProm
   if (failRate) {
     const randomErr = Math.random()
     if (randomErr < failRate) {
-      const error =  new Error('Rate limit reached on Open AI key.')     
-      console.log(error);
-      throw error 
+      throw new Error('Failed to Prompt LLM - Exceeded OpenAI Rate Limit')
     }
   }
   const response = await gptModel.invoke([
