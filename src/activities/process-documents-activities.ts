@@ -57,8 +57,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     `git clone --depth 1 --branch ${gitRepoBranch} https://github.com/${repoPath}.git ${temporaryGitHubDirectory}`
   )
 
-  // @ts-ignore
-  const fileList = fs.readdirSync(temporaryGitHubDirectory, { recursive: true })
+  const fileList = await fs.promises.readdir(temporaryGitHubDirectory, { recursive: true })
   const filteredFileList = fileList.filter((fileName: string) => {
     const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1)
     return fileName.startsWith(gitRepoDirectory) && fileExtensions.includes(fileExtension)
@@ -138,8 +137,7 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   }
   const pgVectorStore = await getPGVectorStore()
 
-  // @ts-ignore
-  const fileList = fs.readdirSync(temporaryDirectory, { recursive: true })
+  const fileList = await fs.promises.readdir(temporaryDirectory, { recursive: true })
   const filesOnly = fileList.filter((fileName) => fileName.indexOf('.') >= 0)
 
   for (const fileName of filesOnly) {
