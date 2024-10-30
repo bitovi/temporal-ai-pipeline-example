@@ -57,7 +57,7 @@ export async function collectDocuments(input: CollectDocumentsInput): Promise<Co
     `git clone --depth 1 --branch ${gitRepoBranch} https://github.com/${repoPath}.git ${temporaryGitHubDirectory}`
   )
 
-  const fileList = await fs.promises.readdir(temporaryGitHubDirectory, { recursive:true })
+  const fileList = await fs.promises.readdir(temporaryGitHubDirectory, { recursive: true })
   const filteredFileList = fileList.filter((fileName: string) => {
     const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1)
     return fileName.startsWith(gitRepoDirectory) && fileExtensions.includes(fileExtension)
