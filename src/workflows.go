@@ -86,9 +86,8 @@ func DocumentsProcessingWorkflow(ctx workflow.Context, input DocumentsProcessing
 }
 
 type QueryWorkflowInput struct {
-	LatestDocumentProcessingID string
-	Query                      string
-	ConversationID             string
+	Query          string
+	ConversationID string
 }
 
 type QueryWorkflowOutput struct {
@@ -103,8 +102,14 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
 	conversationID := input.ConversationID
-	latestDocumentProcessingID := input.LatestDocumentProcessingID
 	query := input.Query
+
+	//Gets most recent process-document workflow id
+	var latestDocumentProcessingID string
+	err := workflow.ExecuteActivity(ctx, activities.GetLatestDocumentProcessingId).Get(ctx, &latestDocumentProcessingID)
+	if err != nil {
+		return QueryWorkflowOutput{}, err
+	}
 
 	// Generate a new conversation ID if one isn't provided
 	if conversationID == "" {
@@ -119,7 +124,7 @@ func InvokePromptWorkflow(ctx workflow.Context, input QueryWorkflowInput) (Query
 	// Generates conversationFilename
 	getRelatedDocumentsInput := activities.GetRelatedDocumentsInput{Query: query, LatestDocumentProcessingId: latestDocumentProcessingID, S3Bucket: conversationID}
 	var conversationFilename activities.GetRelatedDocumentsOutput
-	err := workflow.ExecuteActivity(ctx, activities.GeneratePrompt, getRelatedDocumentsInput).Get(ctx, &conversationFilename)
+	err = workflow.ExecuteActivity(ctx, activities.GeneratePrompt, getRelatedDocumentsInput).Get(ctx, &conversationFilename)
 	if err != nil {
 		return QueryWorkflowOutput{}, err
 	}

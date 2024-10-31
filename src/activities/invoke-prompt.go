@@ -21,7 +21,7 @@ func GeneratePrompt(ctx context.Context, input GetRelatedDocumentsInput) (GetRel
 
 	queryEmbedding, _ := FetchEmbeddings([]string{input.Query})
 
-	data, _ := FetchData(ctx, conn, queryEmbedding, input.LatestDocumentProcessingId)
+	data, _ := FetchEmbeddingsFromDatabase(ctx, conn, queryEmbedding, input.LatestDocumentProcessingId)
 
 	var conversationFilename = "related-documentation.json"
 

@@ -13,16 +13,15 @@ import (
 
 func main() {
 	args := os.Args[1:]
-	if len(args) < 2 {
-		log.Fatal("Usage: go run main.go <latestDocumentProcessingId> <query> <conversationId>")
+	if len(args) < 1 {
+		log.Fatal("Usage: go run main.go <query> <conversationId>")
 	}
-	latestDocumentProcessingID := args[0]
-	query := args[1]
+	query := args[0]
 
 	var conversationID string = ""
 
-	if len(args) >= 3 {
-		conversationID = args[2]
+	if len(args) >= 2 {
+		conversationID = args[1]
 	}
 
 	c, err := client.Dial(client.Options{HostPort: "localhost:7233"})
@@ -41,9 +40,8 @@ func main() {
 
 	//Input
 	input := workflows.QueryWorkflowInput{
-		Query:                      query,
-		LatestDocumentProcessingID: latestDocumentProcessingID,
-		ConversationID:             conversationID,
+		Query:          query,
+		ConversationID: conversationID,
 	}
 
 	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, workflows.InvokePromptWorkflow, input)

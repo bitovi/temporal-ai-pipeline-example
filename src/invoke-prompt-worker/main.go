@@ -25,6 +25,7 @@ func main() {
 	w.RegisterActivity(activities.CreateS3Bucket)
 	w.RegisterActivity(activities.GeneratePrompt)
 	w.RegisterActivity(activities.InvokePrompt)
+	w.RegisterActivity(activities.GetLatestDocumentProcessingId)
 
 	err = w.Run(worker.InterruptCh())
 	if err != nil {
