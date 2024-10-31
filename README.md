@@ -30,7 +30,7 @@ docker compose down -v
 ## Create embeddings
 
 ```bash
-npm run process-documents
+make process-documents
 ```
 
 Generated embeddings are stored in a Postgres table:
@@ -40,7 +40,7 @@ Generated embeddings are stored in a Postgres table:
 ## Invoke a prompt
 
 ```bash
-npm run invoke-prompt <embeddings workflowID> "<query>"
+go run src/invoke-prompt-client/main.go "<query>"
 ```
 
 ## Test a prompt

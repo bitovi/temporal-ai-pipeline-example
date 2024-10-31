@@ -13,10 +13,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/pgvector/pgvector-go"
-	pgxvector "github.com/pgvector/pgvector-go/pgx"
 )
 
 type CollectDocumentsInput struct {
@@ -189,7 +185,7 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 			}
 
 			if len(pageContent) > 0 {
-				err := saveData(ctx, vectorStoreConn, string(pageContent), input.WorkflowID)
+				err := saveDocumentEmbedding(ctx, vectorStoreConn, string(pageContent), input.WorkflowID)
 				if err != nil {
 					return ProcessDocumentsOutput{}, fmt.Errorf("error adding document to vector store: %v", err)
 				}
@@ -202,148 +198,9 @@ func ProcessDocuments(ctx context.Context, input ProcessDocumentsInput) (Process
 		return ProcessDocumentsOutput{}, fmt.Errorf("error removing temporary directory: %v", err)
 	}
 
+	saveWorkflowId(ctx, workflowID)
+
 	return ProcessDocumentsOutput{TableName: DATABASE_TABLE_NAME}, nil
-}
-
-func Unzip(src, dest string) error {
-	r, err := zip.OpenReader(src)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := r.Close(); err != nil {
-			panic(err)
-		}
-	}()
-
-	os.MkdirAll(dest, 0755)
-
-	extractAndWriteFile := func(f *zip.File) error {
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if err := rc.Close(); err != nil {
-				panic(err)
-			}
-		}()
-
-		path := filepath.Join(dest, f.Name)
-		if !strings.HasPrefix(path, filepath.Clean(dest)+string(os.PathSeparator)) {
-			return fmt.Errorf("illegal file path: %s", path)
-		}
-
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(path, f.Mode())
-		} else {
-			os.MkdirAll(filepath.Dir(path), f.Mode())
-			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-			if err != nil {
-				return err
-			}
-			defer func() {
-				if err := f.Close(); err != nil {
-					panic(err)
-				}
-			}()
-
-			_, err = io.Copy(f, rc)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	for _, f := range r.File {
-		err := extractAndWriteFile(f)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func getPGVectorStore(ctx context.Context) *pgx.Conn {
-	conn, _ := GetConn(ctx)
-	createTable(ctx, conn)
-
-	return conn
-}
-
-func GetConn(ctx context.Context) (*pgx.Conn, error) {
-	conn, err := pgx.Connect(ctx, DATABASE_CONNECTION_STRING)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
-}
-
-func createTable(ctx context.Context, conn *pgx.Conn) error {
-	_, err := conn.Exec(ctx, "CREATE EXTENSION IF NOT EXISTS vector")
-	if err != nil {
-		return err
-	}
-
-	err = pgxvector.RegisterTypes(ctx, conn)
-	if err != nil {
-		return err
-	}
-
-	_, err = conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS documents (id bigserial PRIMARY KEY, workflow_id text, content text, embedding vector(1536))")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func saveData(ctx context.Context, conn *pgx.Conn, content string, workflowId string) error {
-	embeddings, err := FetchEmbeddings([]string{content})
-	if err != nil {
-		return err
-	}
-	_, err = conn.Exec(ctx, "INSERT INTO documents (workflow_id, content, embedding) VALUES ($1, $2, $3)", workflowId, content, pgvector.NewVector(embeddings))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type Document struct {
-	ID      int64
-	Content string
-}
-
-func FetchData(ctx context.Context, conn *pgx.Conn, queryEmbedding []float32, latestDocumentProcessingId string) ([]Document, error) {
-	rows, err := conn.Query(ctx, "SELECT id, content FROM documents WHERE workflow_id =$1  ORDER BY embedding <=> $2 LIMIT 5", latestDocumentProcessingId, pgvector.NewVector(queryEmbedding))
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	var documents []Document
-
-	for rows.Next() {
-		var doc Document
-		err = rows.Scan(&doc.ID, &doc.Content)
-		if err != nil {
-			return nil, err
-		}
-		documents = append(documents, doc)
-	}
-
-	if rows.Err() != nil {
-		panic(rows.Err())
-	}
-
-	return documents, nil
 }
 
 type FetchEmbeddingsApiRequest struct {
