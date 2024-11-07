@@ -2,11 +2,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import child_process from 'node:child_process'
+import { Client, PoolConfig} from "pg"
 
 
 import { OpenAIEmbeddings } from '@langchain/openai'
 import { PGVectorStore, PGVectorStoreArgs } from '@langchain/community/vectorstores/pgvector'
-import { PoolConfig } from 'pg'
 import archiver from 'archiver'
 import extractZip from 'extract-zip'
 
@@ -153,7 +153,9 @@ export async function processDocuments(input: ProcessDocumentsInput): Promise<Pr
   pgVectorStore.end()
 
   fs.rmSync(temporaryDirectory, { force: true, recursive: true })
-
+ 
+  await saveWorkflowId(workflowId)
+  
   return {
     tableName: DATABASE_TABLE_NAME
   }
@@ -178,9 +180,83 @@ export function getPGVectorStore(): Promise<PGVectorStore> {
       metadataColumnName: 'metadata',
     }
   }
-
+  
   return PGVectorStore.initialize(
     embeddingsModel,
     config
-  )
+  )   
+}
+
+export async function saveWorkflowId(workflowId: string): Promise<void> {   
+  const query = `
+  CREATE TABLE IF NOT EXISTS process_documents (
+    id SERIAL PRIMARY KEY,
+    workflow_id VARCHAR(255) NOT NULL, 
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+`;
+  await createTable(query)
+  await save(workflowId) 
+}
+
+
+async function createTable(query: string): Promise<void> {  
+  try { 
+    const client = await getClient()
+    await client.connect();
+    await client.query(query); 
+    await client.end()
+  } catch (err) { 
+  }  
+}
+
+async function save(workflowId: string): Promise<void> {  
+  const client = await getClient() 
+  const query = `
+    INSERT INTO process_documents (workflow_id)
+    VALUES ('${workflowId}');
+  `;
+
+  try {
+    await client.connect();
+    await client.query(query); 
+    await client.end()
+  } catch (err) { 
+  }  
+}
+
+
+
+async function getClient(): Promise<Client>{
+  const client = new Client({connectionString: DATABASE_CONNECTION_STRING})   
+  return client
+}
+
+
+interface ProcessDocument {
+  id: number;
+  workflow_id: string;
+  created_at: Date;
+}
+
+export async function getLatestDocumentProcessingId(): Promise<string> {  
+  const client = await getClient()
+
+  let response: Array<ProcessDocument> = [];
+ 
+  const query = `
+    SELECT * 
+    FROM process_documents 
+    ORDER BY created_at DESC 
+    LIMIT 1;
+  `;
+
+  try {
+    await client.connect();  
+    response = (await client.query(query)).rows as Array<ProcessDocument> ; 
+    await client.end()
+  } catch (err) { 
+  }
+  
+  return response[0].workflow_id
 }
