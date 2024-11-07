@@ -1,7 +1,7 @@
-import { proxyActivities, startChild, uuid4, workflowInfo } from '@temporalio/workflow'
+import { proxyActivities, startChild, uuid4 } from '@temporalio/workflow'
 import * as activities from './activities'
 
-const { createS3Bucket, deleteS3Object, deleteS3Bucket, getRelatedDocuments, invokePrompt, loadTestCases } = proxyActivities<typeof activities>({
+const { createS3Bucket, deleteS3Object, deleteS3Bucket, getRelatedDocuments, invokePrompt, loadTestCases, getLatestDocumentProcessingId } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
   retry: {
     backoffCoefficient: 1,
@@ -73,8 +73,7 @@ export async function documentsProcessingWorkflow(input: DocumentsProcessingWork
 }
 
 type QueryWorkflowInput = {
-  query: string
-  latestDocumentProcessingId: string
+  query: string 
   failRate: number
 }
 type QueryWorkflowOutput = {
@@ -82,7 +81,8 @@ type QueryWorkflowOutput = {
   response: string
 }
 export async function invokePromptWorkflow(input: QueryWorkflowInput): Promise<QueryWorkflowOutput> {
-  const { query, latestDocumentProcessingId, failRate } = input
+  const { query, failRate } = input 
+  const latestDocumentProcessingId = await getLatestDocumentProcessingId()  
   const conversationId = `conversation-${uuid4()}`
 
   await createS3Bucket({
